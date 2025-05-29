@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Grid, List, Plus, FolderPlus, Search, Cloud, HardDrive, Users, User, Settings, Bell } from 'lucide-react';
+import { Grid, List, Plus, FolderPlus, Search, Cloud, HardDrive, Users, User, Settings, Bell, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileItemComponent, FileItem } from '@/components/FileItem';
 import { UploadArea } from '@/components/UploadArea';
 import { UserProfile } from '@/components/UserProfile';
 import { SettingsPanel } from '@/components/SettingsPanel';
+import { FilePreviewModal } from '@/components/FilePreviewModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -59,6 +62,8 @@ const Index = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -102,11 +107,13 @@ const Index = () => {
     if (item.type === 'folder') {
       setCurrentPath(prev => [...prev, item.name]);
     } else {
-      toast({
-        title: "Opening file",
-        description: `Opening ${item.name}`,
-      });
+      handleFilePreview(item);
     }
+  };
+
+  const handleFilePreview = (item: FileItem) => {
+    setSelectedFile(item);
+    setShowPreviewModal(true);
   };
 
   const handleFileDelete = (id: string) => {
@@ -150,7 +157,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Modern Header */}
+      {/* Enhanced Header */}
       <header className="border-b border-white/20 bg-white/10 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -212,13 +219,21 @@ const Index = () => {
               >
                 <Settings className="h-4 w-4" />
               </Button>
+              
+              {/* Enhanced Profile Button */}
               <Button 
-                variant="ghost" 
-                size="icon"
+                variant="ghost"
                 onClick={() => setShowUserProfile(true)}
-                className="hover:bg-white/20 text-white"
+                className="flex items-center space-x-2 hover:bg-white/20 text-white p-2"
               >
-                <User className="h-4 w-4" />
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-blue-600 text-white text-sm">JD</AvatarFallback>
+                </Avatar>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium">John Doe</p>
+                  <p className="text-xs text-blue-200">Premium</p>
+                </div>
               </Button>
             </div>
           </div>
@@ -227,9 +242,31 @@ const Index = () => {
 
       <div className="container mx-auto px-6 py-6">
         <div className="grid grid-cols-12 gap-6">
-          {/* Modern Sidebar */}
+          {/* Enhanced Sidebar */}
           <div className="col-span-3">
             <div className="space-y-4">
+              {/* Quick Stats */}
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 shadow-lg">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white text-lg">Quick Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-blue-200">Total Files</span>
+                    <span className="text-sm font-medium text-white">{files.filter(f => f.type === 'file').length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-blue-200">Folders</span>
+                    <span className="text-sm font-medium text-white">{files.filter(f => f.type === 'folder').length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-blue-200">Storage Used</span>
+                    <span className="text-sm font-medium text-white">{storageStats.used}%</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Navigation */}
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
                 <div className="space-y-2">
                   <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/20">
@@ -240,9 +277,14 @@ const Index = () => {
                     <Users className="h-4 w-4 mr-2" />
                     Shared with me
                   </Button>
+                  <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/20">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Recent
+                  </Button>
                 </div>
               </div>
               
+              {/* Storage */}
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
                 <h3 className="font-medium mb-3 text-white">Storage</h3>
                 <div className="space-y-3">
@@ -307,6 +349,7 @@ const Index = () => {
                         onDelete={handleFileDelete}
                         onDownload={handleFileDownload}
                         onShare={handleFileShare}
+                        onPreview={handleFilePreview}
                         view="grid"
                       />
                     ))}
@@ -329,6 +372,7 @@ const Index = () => {
                         onDelete={handleFileDelete}
                         onDownload={handleFileDownload}
                         onShare={handleFileShare}
+                        onPreview={handleFilePreview}
                         view="list"
                       />
                     ))}
@@ -376,6 +420,16 @@ const Index = () => {
           <SettingsPanel onClose={() => setShowSettings(false)} />
         </DialogContent>
       </Dialog>
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        file={selectedFile}
+        onDownload={handleFileDownload}
+        onShare={handleFileShare}
+        onDelete={handleFileDelete}
+      />
     </div>
   );
 };

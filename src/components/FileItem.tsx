@@ -1,5 +1,6 @@
+
 import { useState } from 'react';
-import { File, Folder, Download, Trash2, Share, MoreVertical, Image, FileText, Music, Video } from 'lucide-react';
+import { File, Folder, Download, Trash2, Share, MoreVertical, Image, FileText, Music, Video, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -21,6 +22,7 @@ interface FileItemProps {
   onDelete: (id: string) => void;
   onDownload: (item: FileItem) => void;
   onShare: (item: FileItem) => void;
+  onPreview?: (item: FileItem) => void;
   view: 'grid' | 'list';
 }
 
@@ -41,6 +43,7 @@ export const FileItemComponent = ({
   onDelete, 
   onDownload, 
   onShare, 
+  onPreview,
   view 
 }: FileItemProps) => {
   const [isSelected, setIsSelected] = useState(false);
@@ -72,6 +75,18 @@ export const FileItemComponent = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-slate-900/95 border-white/20 backdrop-blur-xl">
+              {item.type === 'file' && onPreview && (
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPreview(item);
+                  }}
+                  className="text-white hover:bg-white/20"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </DropdownMenuItem>
+              )}
               {item.type === 'file' && (
                 <DropdownMenuItem 
                   onClick={(e) => {
@@ -130,6 +145,18 @@ export const FileItemComponent = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-slate-900/95 border-white/20 backdrop-blur-xl">
+              {item.type === 'file' && onPreview && (
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPreview(item);
+                  }}
+                  className="text-white hover:bg-white/20"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </DropdownMenuItem>
+              )}
               {item.type === 'file' && (
                 <DropdownMenuItem 
                   onClick={(e) => {
