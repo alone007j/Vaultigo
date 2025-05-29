@@ -1,11 +1,12 @@
-
 import { useState, useMemo } from 'react';
-import { Grid, List, Plus, FolderPlus, Search, Cloud, HardDrive, Users } from 'lucide-react';
+import { Grid, List, Plus, FolderPlus, Search, Cloud, HardDrive, Users, User, Settings, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { FileItemComponent, FileItem } from '@/components/FileItem';
 import { UploadArea } from '@/components/UploadArea';
+import { UserProfile } from '@/components/UserProfile';
+import { SettingsPanel } from '@/components/SettingsPanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,6 +31,7 @@ const Index = () => {
       size: 2456789,
       mimeType: 'application/pdf',
       modifiedAt: new Date(2024, 4, 25),
+      url: 'https://example.com/project-report.pdf',
     },
     {
       id: '4',
@@ -38,6 +40,7 @@ const Index = () => {
       size: 4567890,
       mimeType: 'image/jpeg',
       modifiedAt: new Date(2024, 4, 22),
+      url: 'https://example.com/vacation-photo.jpg',
     },
     {
       id: '5',
@@ -46,6 +49,7 @@ const Index = () => {
       size: 8901234,
       mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       modifiedAt: new Date(2024, 4, 18),
+      url: 'https://example.com/presentation.pptx',
     },
   ]);
   
@@ -53,6 +57,8 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -71,7 +77,6 @@ const Index = () => {
   const handleFileUpload = (uploadedFiles: File[]) => {
     setIsUploading(true);
     
-    // Simulate upload delay
     setTimeout(() => {
       const newFiles: FileItem[] = uploadedFiles.map(file => ({
         id: Math.random().toString(36).substr(2, 9),
@@ -80,11 +85,16 @@ const Index = () => {
         size: file.size,
         mimeType: file.type,
         modifiedAt: new Date(),
+        url: URL.createObjectURL(file),
       }));
       
       setFiles(prev => [...prev, ...newFiles]);
       setIsUploading(false);
       setShowUploadModal(false);
+      toast({
+        title: "Upload successful",
+        description: `${uploadedFiles.length} file(s) uploaded successfully`,
+      });
     }, 2000);
   };
 
@@ -108,13 +118,30 @@ const Index = () => {
   };
 
   const handleFileDownload = (item: FileItem) => {
-    toast({
-      title: "Downloading",
-      description: `Downloading ${item.name}`,
-    });
+    if (item.url) {
+      const link = document.createElement('a');
+      link.href = item.url;
+      link.download = item.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Download started",
+        description: `Downloading ${item.name}`,
+      });
+    } else {
+      toast({
+        title: "Download failed",
+        description: "File URL not available",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleFileShare = (item: FileItem) => {
+    const shareUrl = `${window.location.origin}/shared/${item.id}`;
+    navigator.clipboard.writeText(shareUrl);
     toast({
       title: "Share link copied",
       description: `Share link for ${item.name} copied to clipboard`,
@@ -123,13 +150,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
+      {/* Modern Header */}
+      <header className="border-b border-white/20 bg-white/10 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Cloud className="h-8 w-8 text-blue-400" />
-              <h1 className="text-2xl font-bold">CloudStore</h1>
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                <Cloud className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  CloudStore
+                </h1>
+                <p className="text-sm text-blue-200">Your secure cloud storage</p>
+              </div>
             </div>
             
             <div className="flex items-center space-x-4 flex-1 max-w-md mx-8">
@@ -137,25 +171,54 @@ const Index = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search files and folders..."
-                  className="pl-10 bg-white/10 border-white/20 focus:border-blue-400"
+                  className="pl-10 bg-white/10 border-white/30 focus:border-blue-400 focus:bg-white/20 transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Button 
                 variant="outline" 
                 onClick={() => setShowUploadModal(true)}
-                className="border-white/20 hover:bg-white/10"
+                className="border-white/30 hover:bg-white/20 text-white hover:text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Upload
               </Button>
-              <Button variant="outline" className="border-white/20 hover:bg-white/10">
+              <Button 
+                variant="outline" 
+                className="border-white/30 hover:bg-white/20 text-white hover:text-white"
+              >
                 <FolderPlus className="h-4 w-4 mr-2" />
                 New Folder
+              </Button>
+              
+              <Separator orientation="vertical" className="h-6 bg-white/30" />
+              
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="hover:bg-white/20 text-white"
+              >
+                <Bell className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowSettings(true)}
+                className="hover:bg-white/20 text-white"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowUserProfile(true)}
+                className="hover:bg-white/20 text-white"
+              >
+                <User className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -164,36 +227,37 @@ const Index = () => {
 
       <div className="container mx-auto px-6 py-6">
         <div className="grid grid-cols-12 gap-6">
-          {/* Sidebar */}
+          {/* Modern Sidebar */}
           <div className="col-span-3">
             <div className="space-y-4">
-              {/* Navigation */}
-              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
                 <div className="space-y-2">
-                  <Button variant="ghost" className="w-full justify-start">
+                  <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/20">
                     <HardDrive className="h-4 w-4 mr-2" />
                     My Drive
                   </Button>
-                  <Button variant="ghost" className="w-full justify-start">
+                  <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/20">
                     <Users className="h-4 w-4 mr-2" />
                     Shared with me
                   </Button>
                 </div>
               </div>
               
-              {/* Storage */}
-              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                <h3 className="font-medium mb-3">Storage</h3>
-                <div className="space-y-2">
-                  <div className="w-full bg-white/10 rounded-full h-2">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
+                <h3 className="font-medium mb-3 text-white">Storage</h3>
+                <div className="space-y-3">
+                  <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500 shadow-lg"
                       style={{ width: `${storageStats.percentage}%` }}
                     />
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-blue-200">
                     {storageStats.used} GB of {storageStats.total} GB used
                   </p>
+                  <Button size="sm" className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                    Upgrade Storage
+                  </Button>
                 </div>
               </div>
             </div>
@@ -201,14 +265,13 @@ const Index = () => {
 
           {/* Main Content */}
           <div className="col-span-9">
-            <div className="bg-white/5 rounded-lg border border-white/10 min-h-[600px]">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 min-h-[600px] shadow-lg">
+              <div className="flex items-center justify-between p-4 border-b border-white/20">
                 <div className="flex items-center space-x-2">
                   {currentPath.map((path, index) => (
                     <div key={index} className="flex items-center">
                       {index > 0 && <span className="mx-2 text-muted-foreground">/</span>}
-                      <span className="text-sm font-medium">{path}</span>
+                      <span className="text-sm font-medium text-white">{path}</span>
                     </div>
                   ))}
                 </div>
@@ -218,6 +281,7 @@ const Index = () => {
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('grid')}
+                    className={viewMode === 'grid' ? 'bg-blue-600' : 'text-white hover:bg-white/20'}
                   >
                     <Grid className="h-4 w-4" />
                   </Button>
@@ -225,13 +289,13 @@ const Index = () => {
                     variant={viewMode === 'list' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('list')}
+                    className={viewMode === 'list' ? 'bg-blue-600' : 'text-white hover:bg-white/20'}
                   >
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
-              {/* File List */}
               <div className="p-4">
                 {viewMode === 'grid' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -274,7 +338,7 @@ const Index = () => {
                 {filteredFiles.length === 0 && (
                   <div className="text-center py-12">
                     <Cloud className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-medium mb-2">No files found</h3>
+                    <h3 className="text-lg font-medium mb-2 text-white">No files found</h3>
                     <p className="text-muted-foreground">
                       {searchQuery ? 'Try adjusting your search.' : 'Upload files to get started.'}
                     </p>
@@ -288,14 +352,28 @@ const Index = () => {
 
       {/* Upload Modal */}
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="bg-card border-white/20 max-w-2xl">
+        <DialogContent className="bg-slate-900/95 border-white/20 max-w-2xl backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Upload Files</DialogTitle>
+            <DialogTitle className="text-white">Upload Files</DialogTitle>
           </DialogHeader>
           <UploadArea 
             onFileUpload={handleFileUpload}
             isUploading={isUploading}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* User Profile Modal */}
+      <Dialog open={showUserProfile} onOpenChange={setShowUserProfile}>
+        <DialogContent className="bg-slate-900/95 border-white/20 max-w-md backdrop-blur-xl">
+          <UserProfile onClose={() => setShowUserProfile(false)} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Modal */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="bg-slate-900/95 border-white/20 max-w-lg backdrop-blur-xl">
+          <SettingsPanel onClose={() => setShowSettings(false)} />
         </DialogContent>
       </Dialog>
     </div>

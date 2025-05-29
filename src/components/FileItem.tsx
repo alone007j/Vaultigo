@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { File, Folder, Download, Trash2, Share, MoreVertical, Image, FileText, Music, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,41 +50,56 @@ export const FileItemComponent = ({
   if (view === 'list') {
     return (
       <div 
-        className={`flex items-center justify-between p-3 hover:bg-white/5 rounded-lg cursor-pointer transition-colors ${
-          isSelected ? 'bg-blue-500/20' : ''
+        className={`flex items-center justify-between p-3 hover:bg-white/10 rounded-lg cursor-pointer transition-all duration-200 ${
+          isSelected ? 'bg-blue-500/20 border border-blue-500/50' : ''
         }`}
         onClick={() => onOpen(item)}
         onDoubleClick={() => setIsSelected(!isSelected)}
       >
         <div className="flex items-center space-x-3 flex-1">
-          <IconComponent className={`h-5 w-5 ${item.type === 'folder' ? 'text-blue-400' : 'text-gray-400'}`} />
-          <span className="font-medium truncate">{item.name}</span>
+          <IconComponent className={`h-5 w-5 ${item.type === 'folder' ? 'text-blue-400' : 'text-gray-300'}`} />
+          <span className="font-medium truncate text-white">{item.name}</span>
         </div>
         
-        <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+        <div className="flex items-center space-x-6 text-sm text-gray-300">
           <span className="w-20">{item.size ? formatFileSize(item.size) : '-'}</span>
           <span className="w-32">{formatDate(item.modifiedAt)}</span>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="hover:bg-white/20 text-white">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-white/20">
+            <DropdownMenuContent align="end" className="bg-slate-900/95 border-white/20 backdrop-blur-xl">
               {item.type === 'file' && (
-                <DropdownMenuItem onClick={() => onDownload(item)}>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownload(item);
+                  }}
+                  className="text-white hover:bg-white/20"
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => onShare(item)}>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare(item);
+                }}
+                className="text-white hover:bg-white/20"
+              >
                 <Share className="h-4 w-4 mr-2" />
                 Share
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => onDelete(item.id)}
-                className="text-red-400 hover:text-red-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item.id);
+                }}
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
@@ -98,8 +112,8 @@ export const FileItemComponent = ({
   }
   
   return (
-    <Card className={`p-4 hover:bg-white/5 cursor-pointer transition-all duration-200 border-white/10 ${
-      isSelected ? 'ring-2 ring-blue-500' : ''
+    <Card className={`p-4 hover:bg-white/10 cursor-pointer transition-all duration-300 border-white/20 hover:border-white/40 group backdrop-blur-sm ${
+      isSelected ? 'ring-2 ring-blue-500 border-blue-500/50' : ''
     }`}>
       <div 
         className="space-y-3"
@@ -107,28 +121,43 @@ export const FileItemComponent = ({
         onDoubleClick={() => setIsSelected(!isSelected)}
       >
         <div className="flex items-center justify-between">
-          <IconComponent className={`h-8 w-8 ${item.type === 'folder' ? 'text-blue-400' : 'text-gray-400'}`} />
+          <IconComponent className={`h-8 w-8 ${item.type === 'folder' ? 'text-blue-400' : 'text-gray-300'}`} />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20 text-white">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-white/20">
+            <DropdownMenuContent align="end" className="bg-slate-900/95 border-white/20 backdrop-blur-xl">
               {item.type === 'file' && (
-                <DropdownMenuItem onClick={() => onDownload(item)}>
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownload(item);
+                  }}
+                  className="text-white hover:bg-white/20"
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => onShare(item)}>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare(item);
+                }}
+                className="text-white hover:bg-white/20"
+              >
                 <Share className="h-4 w-4 mr-2" />
                 Share
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => onDelete(item.id)}
-                className="text-red-400 hover:text-red-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item.id);
+                }}
+                className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
@@ -138,8 +167,8 @@ export const FileItemComponent = ({
         </div>
         
         <div>
-          <h3 className="font-medium truncate">{item.name}</h3>
-          <div className="flex items-center justify-between text-sm text-muted-foreground mt-1">
+          <h3 className="font-medium truncate text-white">{item.name}</h3>
+          <div className="flex items-center justify-between text-sm text-gray-400 mt-1">
             <span>{item.size ? formatFileSize(item.size) : ''}</span>
             <span>{formatDate(item.modifiedAt)}</span>
           </div>
