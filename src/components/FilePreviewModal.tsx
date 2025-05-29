@@ -51,7 +51,7 @@ export const FilePreviewModal = ({
     
     if (isImage) {
       return (
-        <div className="w-full h-96 flex items-center justify-center bg-black/20 rounded-lg overflow-hidden">
+        <div className="w-full h-96 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
           <img 
             src={previewUrl} 
             alt={file.name}
@@ -67,7 +67,7 @@ export const FilePreviewModal = ({
 
     if (isVideo && previewUrl) {
       return (
-        <div className="w-full h-96 bg-black/20 rounded-lg overflow-hidden">
+        <div className="w-full h-96 bg-gray-50 rounded-lg overflow-hidden">
           <video 
             src={previewUrl} 
             controls 
@@ -80,7 +80,7 @@ export const FilePreviewModal = ({
 
     if (isAudio && previewUrl) {
       return (
-        <div className="w-full h-32 flex items-center justify-center bg-black/20 rounded-lg">
+        <div className="w-full h-32 flex items-center justify-center bg-gray-50 rounded-lg">
           <audio 
             src={previewUrl} 
             controls 
@@ -93,7 +93,7 @@ export const FilePreviewModal = ({
 
     if (isPDF && previewUrl) {
       return (
-        <div className="w-full h-96 bg-black/20 rounded-lg overflow-hidden">
+        <div className="w-full h-96 bg-gray-50 rounded-lg overflow-hidden">
           <iframe 
             src={previewUrl} 
             className="w-full h-full rounded-lg"
@@ -105,15 +105,15 @@ export const FilePreviewModal = ({
     }
 
     return (
-      <div className="w-full h-64 flex flex-col items-center justify-center bg-white/5 rounded-lg border-2 border-dashed border-white/20">
+      <div className="w-full h-64 flex flex-col items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
         <div className="text-center">
           <div className="text-4xl mb-4">📄</div>
-          <h3 className="text-lg font-medium text-white mb-2">Preview not available</h3>
-          <p className="text-sm text-gray-400">This file type cannot be previewed</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Preview not available</h3>
+          <p className="text-sm text-gray-500">This file type cannot be previewed</p>
           {previewUrl && (
             <Button 
               variant="outline" 
-              className="mt-4 border-white/30 text-white hover:bg-white/20"
+              className="mt-4 border-gray-300 text-gray-700 hover:bg-gray-50"
               onClick={() => window.open(previewUrl, '_blank')}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
@@ -127,20 +127,20 @@ export const FilePreviewModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900/95 border-white/20 max-w-4xl backdrop-blur-xl">
+      <DialogContent className="bg-white border-gray-200 max-w-4xl">
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div>
-                <h2 className="text-xl font-semibold text-white">{file.name}</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{file.name}</h2>
                 <div className="flex items-center space-x-2 mt-1">
-                  <Badge className="bg-blue-600/20 text-blue-400 border-blue-600/30">
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-200">
                     {file.mimeType || 'Unknown'}
                   </Badge>
-                  <span className="text-sm text-gray-400">{formatFileSize(file.size || 0)}</span>
+                  <span className="text-sm text-gray-500">{formatFileSize(file.size || 0)}</span>
                   <span className="text-sm text-gray-400">•</span>
-                  <span className="text-sm text-gray-400">{formatDate(file.modifiedAt)}</span>
+                  <span className="text-sm text-gray-500">{formatDate(file.modifiedAt)}</span>
                 </div>
               </div>
             </div>
@@ -148,29 +148,29 @@ export const FilePreviewModal = ({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-white hover:bg-white/20"
+              className="text-gray-500 hover:bg-gray-100"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
 
-          <Separator className="bg-white/20" />
+          <Separator className="bg-gray-200" />
 
           {/* Preview */}
           {renderPreview()}
 
-          <Separator className="bg-white/20" />
+          <Separator className="bg-gray-200" />
 
           {/* Actions */}
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-gray-500">
               Last modified: {file.modifiedAt.toLocaleString()}
             </div>
             <div className="flex space-x-2">
               <Button
                 variant="outline"
                 onClick={() => onShare(file)}
-                className="border-white/30 text-white hover:bg-white/20"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 <Share className="h-4 w-4 mr-2" />
                 Share
@@ -178,7 +178,7 @@ export const FilePreviewModal = ({
               <Button
                 variant="outline"
                 onClick={() => onDownload(file)}
-                className="border-white/30 text-white hover:bg-white/20"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download
@@ -189,7 +189,7 @@ export const FilePreviewModal = ({
                   onDelete(file.id);
                   onClose();
                 }}
-                className="border-red-500/30 text-red-400 hover:bg-red-500/20"
+                className="border-red-200 text-red-600 hover:bg-red-50"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
