@@ -34,7 +34,7 @@ const Index = () => {
       size: 2456789,
       mimeType: 'application/pdf',
       modifiedAt: new Date(2024, 4, 25),
-      url: 'https://example.com/project-report.pdf',
+      url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     },
     {
       id: '4',
@@ -43,7 +43,7 @@ const Index = () => {
       size: 4567890,
       mimeType: 'image/jpeg',
       modifiedAt: new Date(2024, 4, 22),
-      url: 'https://example.com/vacation-photo.jpg',
+      url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
     },
     {
       id: '5',
@@ -52,7 +52,7 @@ const Index = () => {
       size: 8901234,
       mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       modifiedAt: new Date(2024, 4, 18),
-      url: 'https://example.com/presentation.pptx',
+      url: 'https://file-examples.com/storage/fe68c8a7c95bb87ac4b93f7/2017/10/file_example_PPT_250kB.ppt',
     },
   ]);
   

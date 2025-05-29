@@ -32,46 +32,73 @@ export const FilePreviewModal = ({
   const isPDF = file.mimeType === 'application/pdf';
   const isText = file.mimeType?.startsWith('text/') || file.mimeType?.includes('document');
 
+  // Create a sample image URL for demo files that don't have real URLs
+  const getPreviewUrl = (file: FileItem) => {
+    if (file.url && file.url !== 'https://example.com/vacation-photo.jpg') {
+      return file.url;
+    }
+    
+    // For demo purposes, use placeholder images
+    if (file.name === 'vacation-photo.jpg' || isImage) {
+      return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop';
+    }
+    
+    return file.url;
+  };
+
   const renderPreview = () => {
-    if (isImage && file.url) {
+    const previewUrl = getPreviewUrl(file);
+    
+    if (isImage) {
       return (
         <div className="w-full h-96 flex items-center justify-center bg-black/20 rounded-lg overflow-hidden">
           <img 
-            src={file.url} 
+            src={previewUrl} 
             alt={file.name}
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onError={(e) => {
+              console.log('Image failed to load:', previewUrl);
+              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
+            }}
           />
         </div>
       );
     }
 
-    if (isVideo && file.url) {
+    if (isVideo && previewUrl) {
       return (
         <div className="w-full h-96 bg-black/20 rounded-lg overflow-hidden">
           <video 
-            src={file.url} 
+            src={previewUrl} 
             controls 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain rounded-lg"
+            onError={() => console.log('Video failed to load:', previewUrl)}
           />
         </div>
       );
     }
 
-    if (isAudio && file.url) {
+    if (isAudio && previewUrl) {
       return (
         <div className="w-full h-32 flex items-center justify-center bg-black/20 rounded-lg">
-          <audio src={file.url} controls className="w-full max-w-md" />
+          <audio 
+            src={previewUrl} 
+            controls 
+            className="w-full max-w-md"
+            onError={() => console.log('Audio failed to load:', previewUrl)}
+          />
         </div>
       );
     }
 
-    if (isPDF && file.url) {
+    if (isPDF && previewUrl) {
       return (
         <div className="w-full h-96 bg-black/20 rounded-lg overflow-hidden">
           <iframe 
-            src={file.url} 
-            className="w-full h-full"
+            src={previewUrl} 
+            className="w-full h-full rounded-lg"
             title={file.name}
+            onError={() => console.log('PDF failed to load:', previewUrl)}
           />
         </div>
       );
@@ -83,11 +110,11 @@ export const FilePreviewModal = ({
           <div className="text-4xl mb-4">📄</div>
           <h3 className="text-lg font-medium text-white mb-2">Preview not available</h3>
           <p className="text-sm text-gray-400">This file type cannot be previewed</p>
-          {file.url && (
+          {previewUrl && (
             <Button 
               variant="outline" 
               className="mt-4 border-white/30 text-white hover:bg-white/20"
-              onClick={() => window.open(file.url, '_blank')}
+              onClick={() => window.open(previewUrl, '_blank')}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Open in new tab
