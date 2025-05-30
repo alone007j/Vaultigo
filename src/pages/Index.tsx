@@ -1,5 +1,4 @@
-
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Menu, Search, Cloud, Upload, Bell, Settings, User, Plus, Shield, Zap, ArrowLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,8 +10,16 @@ import { SettingsPanel } from '@/components/SettingsPanel';
 import { FilePreviewModal } from '@/components/FilePreviewModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 const Index = () => {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
   const [files, setFiles] = useState<FileItem[]>([
     {
       id: '1',
@@ -56,6 +63,45 @@ const Index = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        if (!session) {
+          navigate('/auth');
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      navigate('/auth');
+    }
+  };
 
   const filteredFiles = useMemo(() => {
     return files.filter(file =>
@@ -151,9 +197,26 @@ const Index = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mb-4 mx-auto">
+            <Cloud className="h-5 w-5 text-white" />
+          </div>
+          <div className="text-xl font-bold mb-2">Vaultigo</div>
+          <div className="text-gray-400">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-black text-white relative">
-      {/* Sidebar Overlay */}
       {showSidebar && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
@@ -161,23 +224,22 @@ const Index = () => {
         />
       )}
 
-      {/* Sidebar */}
       <div className={`fixed left-0 top-0 h-full w-80 bg-gray-900 z-50 transform transition-transform duration-300 ease-in-out ${
         showSidebar ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="p-6">
-          {/* Profile Section */}
           <div className="flex items-center space-x-3 mb-8">
             <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-blue-800 text-white">JD</AvatarFallback>
+              <AvatarFallback className="bg-blue-800 text-white">
+                {user.email?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold text-white">John Doe</h3>
+              <h3 className="font-semibold text-white">{user.user_metadata?.full_name || user.email}</h3>
               <p className="text-sm text-gray-400">Premium Plan</p>
             </div>
           </div>
 
-          {/* Storage Stats */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-300">Storage Used</span>
@@ -191,7 +253,6 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Menu Items */}
           <nav className="space-y-2">
             <Button 
               variant="ghost" 
@@ -226,17 +287,22 @@ const Index = () => {
               <Settings className="h-5 w-5 mr-3" />
               Settings
             </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-red-400 hover:bg-red-900/20 transition-colors duration-200"
+              onClick={handleSignOut}
+            >
+              <ArrowLeft className="h-5 w-5 mr-3" />
+              Sign Out
+            </Button>
           </nav>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="min-h-screen">
-        {/* Header */}
         <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-30">
           <div className="px-4 py-4">
             <div className="flex items-center justify-between">
-              {/* Left side */}
               <div className="flex items-center space-x-3">
                 {currentPath.length > 1 ? (
                   <Button
@@ -266,7 +332,6 @@ const Index = () => {
                 </div>
               </div>
               
-              {/* Right side */}
               <div className="flex items-center space-x-2">
                 <Button
                   variant="ghost"
@@ -288,7 +353,6 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Search Bar */}
         <div className="px-4 py-4 bg-gray-900">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -301,7 +365,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Breadcrumb */}
         <div className="px-4 py-2 bg-gray-800">
           <div className="flex items-center space-x-2">
             {currentPath.map((path, index) => (
@@ -319,7 +382,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="px-4 py-4">
           <div className="grid grid-cols-2 gap-3">
             <Button 
@@ -340,9 +402,7 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Files Content */}
         <div className="px-4 pb-24">
-          {/* Files Grid */}
           <div className="grid grid-cols-1 gap-3">
             {filteredFiles.map((file) => (
               <FileItemComponent
@@ -378,7 +438,6 @@ const Index = () => {
           )}
         </div>
 
-        {/* Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 px-4 py-3">
           <div className="flex items-center justify-around">
             <Button 
@@ -422,7 +481,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Upload Modal */}
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
         <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-sm mx-4">
           <DialogHeader>
@@ -435,21 +493,18 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* User Profile Modal */}
       <Dialog open={showUserProfile} onOpenChange={setShowUserProfile}>
         <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-sm mx-4">
           <UserProfile onClose={() => setShowUserProfile(false)} />
         </DialogContent>
       </Dialog>
 
-      {/* Settings Modal */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-sm mx-4">
           <SettingsPanel onClose={() => setShowSettings(false)} />
         </DialogContent>
       </Dialog>
 
-      {/* File Preview Modal */}
       <FilePreviewModal
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
