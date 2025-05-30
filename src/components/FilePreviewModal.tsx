@@ -30,7 +30,6 @@ export const FilePreviewModal = ({
   const isVideo = file.mimeType?.startsWith('video/');
   const isAudio = file.mimeType?.startsWith('audio/');
   const isPDF = file.mimeType === 'application/pdf';
-  const isText = file.mimeType?.startsWith('text/') || file.mimeType?.includes('document');
 
   const getPreviewUrl = (file: FileItem) => {
     if (file.url && file.url !== 'https://example.com/vacation-photo.jpg') {
@@ -49,7 +48,7 @@ export const FilePreviewModal = ({
     
     if (isImage) {
       return (
-        <div className="w-full h-80 flex items-center justify-center bg-gray-800 rounded-lg overflow-hidden">
+        <div className="w-full h-80 flex items-center justify-center bg-slate-800/50 backdrop-blur-sm rounded-lg overflow-hidden border border-slate-700/50">
           <img 
             src={previewUrl} 
             alt={file.name}
@@ -65,7 +64,7 @@ export const FilePreviewModal = ({
 
     if (isVideo && previewUrl) {
       return (
-        <div className="w-full h-80 bg-gray-800 rounded-lg overflow-hidden">
+        <div className="w-full h-80 bg-slate-800/50 backdrop-blur-sm rounded-lg overflow-hidden border border-slate-700/50">
           <video 
             src={previewUrl} 
             controls 
@@ -78,7 +77,7 @@ export const FilePreviewModal = ({
 
     if (isAudio && previewUrl) {
       return (
-        <div className="w-full h-32 flex items-center justify-center bg-gray-800 rounded-lg">
+        <div className="w-full h-32 flex items-center justify-center bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50">
           <audio 
             src={previewUrl} 
             controls 
@@ -91,7 +90,7 @@ export const FilePreviewModal = ({
 
     if (isPDF && previewUrl) {
       return (
-        <div className="w-full h-80 bg-gray-800 rounded-lg overflow-hidden">
+        <div className="w-full h-80 bg-slate-800/50 backdrop-blur-sm rounded-lg overflow-hidden border border-slate-700/50">
           <iframe 
             src={previewUrl} 
             className="w-full h-full rounded-lg"
@@ -103,15 +102,15 @@ export const FilePreviewModal = ({
     }
 
     return (
-      <div className="w-full h-64 flex flex-col items-center justify-center bg-gray-800 rounded-lg border-2 border-dashed border-gray-600">
+      <div className="w-full h-64 flex flex-col items-center justify-center bg-slate-800/50 backdrop-blur-sm rounded-lg border-2 border-dashed border-slate-600">
         <div className="text-center">
           <div className="text-4xl mb-4">📄</div>
           <h3 className="text-lg font-medium text-white mb-2">Preview not available</h3>
-          <p className="text-sm text-gray-400">This file type cannot be previewed</p>
+          <p className="text-sm text-slate-400">This file type cannot be previewed</p>
           {previewUrl && (
             <Button 
               variant="outline" 
-              className="mt-4 border-gray-600 bg-gray-700 text-white hover:bg-gray-600"
+              className="mt-4 border-slate-600 bg-slate-700/50 text-white hover:bg-slate-600/50"
               onClick={() => window.open(previewUrl, '_blank')}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
@@ -125,7 +124,7 @@ export const FilePreviewModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl mx-4 max-h-[90vh] overflow-auto">
+      <DialogContent className="bg-slate-900/95 backdrop-blur-lg border-slate-700 text-white max-w-2xl mx-4 max-h-[90vh] overflow-auto">
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -133,12 +132,12 @@ export const FilePreviewModal = ({
               <div>
                 <h2 className="text-xl font-semibold text-white">{file.name}</h2>
                 <div className="flex items-center space-x-2 mt-1">
-                  <Badge className="bg-blue-600 text-white border-blue-500">
+                  <Badge className="bg-cyan-600/20 text-cyan-400 border-cyan-500/30">
                     {file.mimeType || 'Unknown'}
                   </Badge>
-                  <span className="text-sm text-gray-400">{formatFileSize(file.size || 0)}</span>
-                  <span className="text-sm text-gray-500">•</span>
-                  <span className="text-sm text-gray-400">{formatDate(file.modifiedAt)}</span>
+                  <span className="text-sm text-slate-400">{formatFileSize(file.size || 0)}</span>
+                  <span className="text-sm text-slate-500">•</span>
+                  <span className="text-sm text-slate-400">{formatDate(file.modifiedAt)}</span>
                 </div>
               </div>
             </div>
@@ -146,36 +145,36 @@ export const FilePreviewModal = ({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-gray-400 hover:bg-gray-800 hover:text-white"
+              className="text-slate-400 hover:bg-slate-800/50 hover:text-white"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
 
-          <Separator className="bg-gray-800" />
+          <Separator className="bg-slate-700/50" />
 
           {/* Preview */}
           {renderPreview()}
 
-          <Separator className="bg-gray-800" />
+          <Separator className="bg-slate-700/50" />
 
           {/* Actions */}
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-slate-400">
               Last modified: {file.modifiedAt.toLocaleString()}
             </div>
             <div className="flex space-x-2">
               <Button
                 variant="outline"
                 onClick={() => onShare(file)}
-                className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600"
+                className="border-slate-600 bg-slate-700/50 text-white hover:bg-slate-600/50"
               >
                 <Share className="h-4 w-4 mr-2" />
                 Share
               </Button>
               <Button
                 onClick={() => onDownload(file)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download
@@ -186,7 +185,7 @@ export const FilePreviewModal = ({
                   onDelete(file.id);
                   onClose();
                 }}
-                className="border-red-600 bg-red-900/20 text-red-400 hover:bg-red-900/40"
+                className="border-red-600/50 bg-red-900/20 text-red-400 hover:bg-red-900/40"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
