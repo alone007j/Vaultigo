@@ -53,82 +53,84 @@ export const FileItemComponent = ({
   if (view === 'list') {
     return (
       <div 
-        className={`flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg cursor-pointer transition-all duration-200 border ${
-          isSelected ? 'bg-blue-50 border-blue-200' : 'border-transparent'
+        className={`flex items-center justify-between p-4 hover:bg-gray-800 rounded-xl cursor-pointer transition-all duration-200 border ${
+          isSelected ? 'bg-gray-800 border-blue-600' : 'border-gray-800 bg-gray-900'
         }`}
         onClick={() => onOpen(item)}
         onDoubleClick={() => setIsSelected(!isSelected)}
       >
         <div className="flex items-center space-x-3 flex-1">
-          <IconComponent className={`h-5 w-5 ${item.type === 'folder' ? 'text-blue-500' : 'text-gray-500'}`} />
-          <span className="font-medium text-gray-900 truncate">{item.name}</span>
+          <IconComponent className={`h-6 w-6 ${item.type === 'folder' ? 'text-blue-500' : 'text-gray-400'}`} />
+          <div className="flex-1 min-w-0">
+            <span className="font-medium text-white truncate block">{item.name}</span>
+            <div className="flex items-center space-x-2 text-sm text-gray-400 mt-1">
+              <span>{item.size ? formatFileSize(item.size) : ''}</span>
+              {item.size && <span>•</span>}
+              <span>{formatDate(item.modifiedAt)}</span>
+            </div>
+          </div>
         </div>
         
-        <div className="flex items-center space-x-6 text-sm text-gray-500">
-          <span className="w-20">{item.size ? formatFileSize(item.size) : '-'}</span>
-          <span className="w-32">{formatDate(item.modifiedAt)}</span>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="hover:bg-gray-100">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border-gray-200 shadow-lg">
-              {item.type === 'file' && onPreview && (
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPreview(item);
-                  }}
-                  className="hover:bg-gray-50"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Preview
-                </DropdownMenuItem>
-              )}
-              {item.type === 'file' && (
-                <DropdownMenuItem 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDownload(item);
-                  }}
-                  className="hover:bg-gray-50"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </DropdownMenuItem>
-              )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="text-gray-400 hover:bg-gray-700 hover:text-white">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
+            {item.type === 'file' && onPreview && (
               <DropdownMenuItem 
                 onClick={(e) => {
                   e.stopPropagation();
-                  onShare(item);
+                  onPreview(item);
                 }}
-                className="hover:bg-gray-50"
+                className="hover:bg-gray-700 text-white"
               >
-                <Share className="h-4 w-4 mr-2" />
-                Share
+                <Eye className="h-4 w-4 mr-2" />
+                Preview
               </DropdownMenuItem>
+            )}
+            {item.type === 'file' && (
               <DropdownMenuItem 
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(item.id);
+                  onDownload(item);
                 }}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="hover:bg-gray-700 text-white"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                <Download className="h-4 w-4 mr-2" />
+                Download
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            )}
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare(item);
+              }}
+              className="hover:bg-gray-700 text-white"
+            >
+              <Share className="h-4 w-4 mr-2" />
+              Share
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(item.id);
+              }}
+              className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     );
   }
   
   return (
-    <Card className={`p-4 hover:shadow-md cursor-pointer transition-all duration-300 border group ${
-      isSelected ? 'ring-2 ring-blue-500 border-blue-200' : 'border-gray-200 hover:border-gray-300'
+    <Card className={`p-4 hover:bg-gray-800 cursor-pointer transition-all duration-300 border group ${
+      isSelected ? 'ring-2 ring-blue-500 border-blue-600 bg-gray-800' : 'border-gray-800 bg-gray-900 hover:border-gray-700'
     }`}>
       <div 
         className="space-y-3"
@@ -136,22 +138,22 @@ export const FileItemComponent = ({
         onDoubleClick={() => setIsSelected(!isSelected)}
       >
         <div className="flex items-center justify-between">
-          <IconComponent className={`h-8 w-8 ${item.type === 'folder' ? 'text-blue-500' : 'text-gray-500'}`} />
+          <IconComponent className={`h-8 w-8 ${item.type === 'folder' ? 'text-blue-500' : 'text-gray-400'}`} />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100">
+              <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:bg-gray-700 hover:text-white">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border-gray-200 shadow-lg">
+            <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
               {item.type === 'file' && onPreview && (
                 <DropdownMenuItem 
                   onClick={(e) => {
                     e.stopPropagation();
                     onPreview(item);
                   }}
-                  className="hover:bg-gray-50"
+                  className="hover:bg-gray-700 text-white"
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Preview
@@ -163,7 +165,7 @@ export const FileItemComponent = ({
                     e.stopPropagation();
                     onDownload(item);
                   }}
-                  className="hover:bg-gray-50"
+                  className="hover:bg-gray-700 text-white"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download
@@ -174,7 +176,7 @@ export const FileItemComponent = ({
                   e.stopPropagation();
                   onShare(item);
                 }}
-                className="hover:bg-gray-50"
+                className="hover:bg-gray-700 text-white"
               >
                 <Share className="h-4 w-4 mr-2" />
                 Share
@@ -184,7 +186,7 @@ export const FileItemComponent = ({
                   e.stopPropagation();
                   onDelete(item.id);
                 }}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
@@ -194,8 +196,8 @@ export const FileItemComponent = ({
         </div>
         
         <div>
-          <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
-          <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
+          <h3 className="font-medium text-white truncate">{item.name}</h3>
+          <div className="flex items-center justify-between text-sm text-gray-400 mt-1">
             <span>{item.size ? formatFileSize(item.size) : ''}</span>
             <span>{formatDate(item.modifiedAt)}</span>
           </div>
