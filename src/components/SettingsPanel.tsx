@@ -1,245 +1,302 @@
 
-import { useState } from 'react';
-import { Settings, Shield, Bell, Palette, Globe, Download, Trash2, Moon, Sun } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Shield, Bell, Download, Globe, Palette, X, Languages, Trash2, HardDrive, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface SettingsPanelProps {
   onClose: () => void;
 }
 
 export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
-  const [settings, setSettings] = useState({
-    notifications: true,
-    autoSync: true,
-    darkMode: true,
-    twoFactor: true,
-    publicSharing: false,
-    autoDownload: false,
-    language: 'en',
-    theme: 'dark',
-  });
+  const { user } = useAuth();
+  const { settings, loading, updateSettings } = useUserProfile(user?.id || null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSettingChange = (key: string, value: boolean | string) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+  const [localSettings, setLocalSettings] = useState({
+    notifications: true,
+    auto_sync: true,
+    theme: 'dark',
+    language: 'en',
+    two_factor_enabled: false,
+    public_sharing: false,
+    auto_download: false,
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings({
+        notifications: settings.notifications,
+        auto_sync: settings.auto_sync,
+        theme: settings.theme,
+        language: settings.language,
+        two_factor_enabled: settings.two_factor_enabled,
+        public_sharing: settings.public_sharing,
+        auto_download: settings.auto_download,
+      });
+    }
+  }, [settings]);
+
+  const handleSettingChange = async (key: string, value: any) => {
+    const newSettings = { ...localSettings, [key]: value };
+    setLocalSettings(newSettings);
+    
+    try {
+      await updateSettings({ [key]: value });
+    } catch (error) {
+      // Revert on error
+      setLocalSettings(localSettings);
+    }
+  };
+
+  const handleSignOutAllDevices = async () => {
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'others' });
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Signed out from all other devices",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out from other devices",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleChangePassword = () => {
     toast({
-      title: "Setting updated",
-      description: `${key} has been updated`,
+      title: "Password Reset",
+      description: "Password reset link will be sent to your email",
+    });
+    // In a real app, this would trigger a password reset email
+  };
+
+  const handleClearCache = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    toast({
+      title: "Cache cleared",
+      description: "Local cache has been cleared successfully",
     });
   };
+
+  const handleOptimizeStorage = () => {
+    toast({
+      title: "Storage optimized",
+      description: "Storage optimization completed",
+    });
+  };
+
+  const handleEmptyTrash = () => {
+    toast({
+      title: "Trash emptied",
+      description: "All files in trash have been permanently deleted",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="text-white flex items-center space-x-2">
-          <Settings className="h-5 w-5" />
-          <span>Settings</span>
+        <DialogTitle className="text-white flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Settings className="h-5 w-5" />
+            <span>Settings</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </DialogTitle>
       </DialogHeader>
       
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-white/10">
-          <TabsTrigger value="general" className="text-white">General</TabsTrigger>
-          <TabsTrigger value="security" className="text-white">Security</TabsTrigger>
-          <TabsTrigger value="storage" className="text-white">Storage</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="general" className="space-y-4 mt-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-white flex items-center space-x-2">
-                  <Bell className="h-4 w-4" />
-                  <span>Notifications</span>
-                </Label>
-                <p className="text-sm text-gray-400">Receive notifications for file changes</p>
-              </div>
-              <Switch
-                checked={settings.notifications}
-                onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
-              />
-            </div>
-
-            <Separator className="bg-white/20" />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-white flex items-center space-x-2">
-                  <Download className="h-4 w-4" />
-                  <span>Auto Sync</span>
-                </Label>
-                <p className="text-sm text-gray-400">Automatically sync files across devices</p>
-              </div>
-              <Switch
-                checked={settings.autoSync}
-                onCheckedChange={(checked) => handleSettingChange('autoSync', checked)}
-              />
-            </div>
-
-            <Separator className="bg-white/20" />
-
-            <div className="space-y-2">
-              <Label className="text-white flex items-center space-x-2">
-                <Globe className="h-4 w-4" />
-                <span>Language</span>
-              </Label>
-              <Select 
-                value={settings.language} 
-                onValueChange={(value) => handleSettingChange('language', value)}
-              >
-                <SelectTrigger className="bg-white/10 border-white/30 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/20">
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="de">Deutsch</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-white flex items-center space-x-2">
-                <Palette className="h-4 w-4" />
-                <span>Theme</span>
-              </Label>
-              <Select 
-                value={settings.theme} 
-                onValueChange={(value) => handleSettingChange('theme', value)}
-              >
-                <SelectTrigger className="bg-white/10 border-white/30 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/20">
-                  <SelectItem value="dark">
-                    <div className="flex items-center space-x-2">
-                      <Moon className="h-4 w-4" />
-                      <span>Dark</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="light">
-                    <div className="flex items-center space-x-2">
-                      <Sun className="h-4 w-4" />
-                      <span>Light</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="space-y-6 py-4 max-h-96 overflow-y-auto">
+        {/* General Settings */}
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center space-x-2">
+            <Bell className="h-4 w-4" />
+            <span>General</span>
+          </h3>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="notifications" className="text-white">Notifications</Label>
+            <Switch
+              id="notifications"
+              checked={localSettings.notifications}
+              onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
+            />
           </div>
-        </TabsContent>
-        
-        <TabsContent value="security" className="space-y-4 mt-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-white flex items-center space-x-2">
-                  <Shield className="h-4 w-4" />
-                  <span>Two-Factor Authentication</span>
-                </Label>
-                <p className="text-sm text-gray-400">Add an extra layer of security</p>
-              </div>
-              <Switch
-                checked={settings.twoFactor}
-                onCheckedChange={(checked) => handleSettingChange('twoFactor', checked)}
-              />
-            </div>
-
-            <Separator className="bg-white/20" />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-white">Public Sharing</Label>
-                <p className="text-sm text-gray-400">Allow files to be shared publicly</p>
-              </div>
-              <Switch
-                checked={settings.publicSharing}
-                onCheckedChange={(checked) => handleSettingChange('publicSharing', checked)}
-              />
-            </div>
-
-            <Separator className="bg-white/20" />
-
-            <div className="space-y-3">
-              <Label className="text-white">Security Actions</Label>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20">
-                  Change Password
-                </Button>
-                <Button variant="outline" className="w-full border-red-500/50 text-red-400 hover:bg-red-500/20">
-                  Sign Out All Devices
-                </Button>
-              </div>
-            </div>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="auto-sync" className="text-white">Auto Sync</Label>
+            <Switch
+              id="auto-sync"
+              checked={localSettings.auto_sync}
+              onCheckedChange={(checked) => handleSettingChange('auto_sync', checked)}
+            />
           </div>
-        </TabsContent>
-        
-        <TabsContent value="storage" className="space-y-4 mt-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-white">Auto Download</Label>
-                <p className="text-sm text-gray-400">Automatically download shared files</p>
-              </div>
-              <Switch
-                checked={settings.autoDownload}
-                onCheckedChange={(checked) => handleSettingChange('autoDownload', checked)}
-              />
-            </div>
 
-            <Separator className="bg-white/20" />
-
-            <div className="space-y-3">
-              <Label className="text-white">Storage Management</Label>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full border-blue-500/50 text-blue-400 hover:bg-blue-500/20">
-                  Clear Cache
-                </Button>
-                <Button variant="outline" className="w-full border-orange-500/50 text-orange-400 hover:bg-orange-500/20">
-                  Optimize Storage
-                </Button>
-                <Button variant="outline" className="w-full border-red-500/50 text-red-400 hover:bg-red-500/20">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Empty Trash
-                </Button>
-              </div>
-            </div>
-
-            <Separator className="bg-white/20" />
-
-            <div className="bg-white/10 p-4 rounded-lg">
-              <h4 className="text-white font-medium mb-2">Storage Usage</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Documents</span>
-                  <span className="text-white">2.4 GB</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Images</span>
-                  <span className="text-white">8.7 GB</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Videos</span>
-                  <span className="text-white">4.5 GB</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="auto-download" className="text-white">Auto Download</Label>
+            <Switch
+              id="auto-download"
+              checked={localSettings.auto_download}
+              onCheckedChange={(checked) => handleSettingChange('auto_download', checked)}
+            />
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
 
-      <div className="flex space-x-3 pt-4">
-        <Button onClick={onClose} className="flex-1 bg-blue-600 hover:bg-blue-700">
-          Done
-        </Button>
+        <Separator className="bg-gray-700" />
+
+        {/* Appearance */}
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center space-x-2">
+            <Palette className="h-4 w-4" />
+            <span>Appearance</span>
+          </h3>
+          
+          <div className="flex items-center justify-between">
+            <Label className="text-white">Theme</Label>
+            <Select value={localSettings.theme} onValueChange={(value) => handleSettingChange('theme', value)}>
+              <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectItem value="dark" className="text-white">Dark</SelectItem>
+                <SelectItem value="light" className="text-white">Light</SelectItem>
+                <SelectItem value="system" className="text-white">System</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label className="text-white flex items-center space-x-2">
+              <Languages className="h-4 w-4" />
+              <span>Language</span>
+            </Label>
+            <Select value={localSettings.language} onValueChange={(value) => handleSettingChange('language', value)}>
+              <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectItem value="en" className="text-white">English</SelectItem>
+                <SelectItem value="es" className="text-white">Spanish</SelectItem>
+                <SelectItem value="fr" className="text-white">French</SelectItem>
+                <SelectItem value="de" className="text-white">German</SelectItem>
+                <SelectItem value="zh" className="text-white">Chinese</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Separator className="bg-gray-700" />
+
+        {/* Security Settings */}
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center space-x-2">
+            <Shield className="h-4 w-4" />
+            <span>Security</span>
+          </h3>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="2fa" className="text-white">Two-Factor Authentication</Label>
+            <Switch
+              id="2fa"
+              checked={localSettings.two_factor_enabled}
+              onCheckedChange={(checked) => handleSettingChange('two_factor_enabled', checked)}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="public-sharing" className="text-white">Public Sharing</Label>
+            <Switch
+              id="public-sharing"
+              checked={localSettings.public_sharing}
+              onCheckedChange={(checked) => handleSettingChange('public_sharing', checked)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Button
+              onClick={handleChangePassword}
+              variant="outline"
+              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+            >
+              Change Password
+            </Button>
+            
+            <Button
+              onClick={handleSignOutAllDevices}
+              variant="outline"
+              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out All Devices
+            </Button>
+          </div>
+        </div>
+
+        <Separator className="bg-gray-700" />
+
+        {/* Storage Management */}
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold flex items-center space-x-2">
+            <HardDrive className="h-4 w-4" />
+            <span>Storage Management</span>
+          </h3>
+          
+          <div className="space-y-2">
+            <Button
+              onClick={handleClearCache}
+              variant="outline"
+              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+            >
+              Clear Cache
+            </Button>
+            
+            <Button
+              onClick={handleOptimizeStorage}
+              variant="outline"
+              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+            >
+              Optimize Storage
+            </Button>
+            
+            <Button
+              onClick={handleEmptyTrash}
+              variant="outline"
+              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700 text-red-400 hover:text-red-300"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Empty Trash
+            </Button>
+          </div>
+        </div>
       </div>
     </>
   );

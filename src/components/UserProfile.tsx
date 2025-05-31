@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface UserProfileProps {
   onClose: () => void;
@@ -16,61 +18,71 @@ interface UserProfileProps {
 
 export const UserProfile = ({ onClose }: UserProfileProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [userInfo, setUserInfo] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    joinDate: 'January 2024',
-    plan: 'Premium',
-    avatar: localStorage.getItem('userAvatar') || '',
-  });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const { user } = useAuth();
+  const { profile, subscription, loading, updateProfile } = useUserProfile(user?.id || null);
   const { toast } = useToast();
 
-  // Load avatar from localStorage on component mount
-  useEffect(() => {
-    const savedAvatar = localStorage.getItem('userAvatar');
-    if (savedAvatar) {
-      setUserInfo(prev => ({
-        ...prev,
-        avatar: savedAvatar
-      }));
-    }
-  }, []);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+  });
 
-  const handleSave = () => {
-    // Save avatar to localStorage for persistence
-    localStorage.setItem('userAvatar', userInfo.avatar);
-    
-    setIsEditing(false);
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been successfully updated and saved",
-    });
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+      });
+      setAvatarPreview(profile.avatar_url || '');
+    }
+  }, [profile]);
+
+  const handleSave = async () => {
+    try {
+      await updateProfile(formData);
+      setIsEditing(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancel = () => {
-    // Restore avatar from localStorage if cancelled
-    const savedAvatar = localStorage.getItem('userAvatar') || '';
-    setUserInfo(prev => ({
-      ...prev,
-      avatar: savedAvatar
-    }));
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+      });
+      setAvatarPreview(profile.avatar_url || '');
+    }
+    setAvatarFile(null);
     setIsEditing(false);
   };
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = () => {
-        const result = reader.result as string;
-        setUserInfo(prev => ({
-          ...prev,
-          avatar: result
-        }));
+        setAvatarPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -95,9 +107,9 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
             <Avatar className="h-20 w-20 ring-2 ring-blue-600">
-              <AvatarImage src={userInfo.avatar} />
+              <AvatarImage src={avatarPreview} />
               <AvatarFallback className="bg-blue-600 text-white text-xl">
-                {userInfo.name.split(' ').map(n => n[0]).join('')}
+                {formData.full_name ? formData.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
               </AvatarFallback>
             </Avatar>
             {isEditing && (
@@ -115,7 +127,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           
           <div className="text-center">
             <Badge className="bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-              {userInfo.plan} Plan
+              {subscription?.subscription_tier || 'Free'} Plan
             </Badge>
           </div>
         </div>
@@ -131,12 +143,12 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
             {isEditing ? (
               <Input
                 id="name"
-                value={userInfo.name}
-                onChange={(e) => setUserInfo(prev => ({ ...prev, name: e.target.value }))}
+                value={formData.full_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
                 className="bg-gray-800 border-gray-700 text-white focus:border-blue-500 transition-colors duration-200"
               />
             ) : (
-              <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{userInfo.name}</p>
+              <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{formData.full_name || 'Not set'}</p>
             )}
           </div>
 
@@ -145,17 +157,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
               <Mail className="h-4 w-4" />
               <span>Email Address</span>
             </Label>
-            {isEditing ? (
-              <Input
-                id="email"
-                type="email"
-                value={userInfo.email}
-                onChange={(e) => setUserInfo(prev => ({ ...prev, email: e.target.value }))}
-                className="bg-gray-800 border-gray-700 text-white focus:border-blue-500 transition-colors duration-200"
-              />
-            ) : (
-              <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{userInfo.email}</p>
-            )}
+            <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{user?.email || 'Not set'}</p>
           </div>
 
           <div className="space-y-2">
@@ -163,7 +165,9 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
               <Calendar className="h-4 w-4" />
               <span>Member Since</span>
             </Label>
-            <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{userInfo.joinDate}</p>
+            <p className="text-white bg-gray-800 px-3 py-2 rounded-md">
+              {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -173,7 +177,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
             </Label>
             <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-md">
               <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-400 text-sm">Two-factor authentication enabled</span>
+              <span className="text-green-400 text-sm">Account secured</span>
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { Logo } from '@/components/Logo';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(false);
@@ -45,7 +46,7 @@ const Auth = () => {
             title: "Welcome back!",
             description: "You have been logged in successfully.",
           });
-          navigate('/');
+          navigate('/dashboard');
         }
       } else {
         if (formData.password !== formData.confirmPassword) {
@@ -75,6 +76,7 @@ const Auth = () => {
             data: {
               full_name: formData.fullName,
             },
+            emailRedirectTo: `${window.location.origin}/dashboard`,
           },
         });
 
@@ -87,7 +89,7 @@ const Auth = () => {
         } else {
           toast({
             title: "Account created!",
-            description: "Please check your email to verify your account.",
+            description: "Please check your email to verify your account, then you can sign in.",
           });
           setIsLogin(true);
         }
@@ -106,6 +108,9 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
     });
 
     if (error) {
@@ -118,7 +123,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <Button
@@ -129,10 +134,11 @@ const Auth = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="text-sm text-blue-200">1 External Storage Link</div>
+        <Logo size="sm" />
+        <div className="w-10" />
       </div>
 
-      <div className="px-6 py-8">
+      <div className="px-6 py-8 max-w-md mx-auto">
         {/* Google Sign In */}
         <Button
           onClick={handleGoogleSignIn}
@@ -151,7 +157,7 @@ const Auth = () => {
             <div className="w-full border-t border-gray-400"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-gray-300">
+            <span className="px-4 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-gray-300">
               OR CREATE WITH EMAIL
             </span>
           </div>

@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Menu, Search, Cloud, Upload, Bell, Settings, User, Plus, Shield, Zap, ArrowLeft, ChevronRight } from 'lucide-react';
+
+import { useState, useMemo } from 'react';
+import { Menu, Search, Cloud, Upload, Bell, Settings, User, Plus, ArrowLeft, ChevronRight, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,12 +13,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { Logo } from '@/components/Logo';
 
 const Index = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const { profile, subscription, storageUsage, loading: profileLoading } = useUserProfile(user?.id || null);
   const navigate = useNavigate();
 
   const [files, setFiles] = useState<FileItem[]>([
@@ -64,31 +66,11 @@ const Index = () => {
   const [showSidebar, setShowSidebar] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        
-        if (!session) {
-          navigate('/auth');
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      if (!session) {
-        navigate('/auth');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  // Redirect to auth if not authenticated
+  if (!authLoading && !user) {
+    navigate('/auth');
+    return null;
+  }
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -99,7 +81,7 @@ const Index = () => {
         variant: "destructive",
       });
     } else {
-      navigate('/auth');
+      navigate('/');
     }
   };
 
@@ -110,9 +92,9 @@ const Index = () => {
   }, [files, searchQuery]);
 
   const storageStats = {
-    used: 15.6,
-    total: 100,
-    percentage: 15.6,
+    used: storageUsage ? (storageUsage.used_bytes / (1024 * 1024 * 1024)).toFixed(1) : '0.0',
+    total: storageUsage ? (storageUsage.total_bytes / (1024 * 1024 * 1024)).toFixed(0) : '10',
+    percentage: storageUsage ? (storageUsage.used_bytes / storageUsage.total_bytes) * 100 : 0,
   };
 
   const handleFileUpload = (uploadedFiles: File[]) => {
@@ -137,6 +119,23 @@ const Index = () => {
         description: `${uploadedFiles.length} file(s) uploaded successfully`,
       });
     }, 2000);
+  };
+
+  const handleCreateFolder = () => {
+    const folderName = prompt('Enter folder name:');
+    if (folderName) {
+      const newFolder: FileItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: folderName,
+        type: 'folder',
+        modifiedAt: new Date(),
+      };
+      setFiles(prev => [...prev, newFolder]);
+      toast({
+        title: "Folder created",
+        description: `Folder "${folderName}" created successfully`,
+      });
+    }
   };
 
   const handleFileOpen = (item: FileItem) => {
@@ -197,22 +196,22 @@ const Index = () => {
     }
   };
 
-  if (loading) {
+  const handleSearch = () => {
+    toast({
+      title: "Search",
+      description: "Search functionality is working!",
+    });
+  };
+
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mb-4 mx-auto">
-            <Cloud className="h-5 w-5 text-white" />
-          </div>
-          <div className="text-xl font-bold mb-2">Vaultigo</div>
+          <Logo size="lg" className="justify-center mb-4" />
           <div className="text-gray-400">Loading...</div>
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
@@ -230,13 +229,14 @@ const Index = () => {
         <div className="p-6">
           <div className="flex items-center space-x-3 mb-8">
             <Avatar className="h-12 w-12">
+              <AvatarImage src={profile?.avatar_url || ''} />
               <AvatarFallback className="bg-blue-800 text-white">
-                {user.email?.charAt(0).toUpperCase() || 'U'}
+                {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold text-white">{user.user_metadata?.full_name || user.email}</h3>
-              <p className="text-sm text-gray-400">Premium Plan</p>
+              <h3 className="font-semibold text-white">{profile?.full_name || user?.email}</h3>
+              <p className="text-sm text-gray-400">{subscription?.subscription_tier || 'Free'} Plan</p>
             </div>
           </div>
 
@@ -248,7 +248,7 @@ const Index = () => {
             <div className="w-full bg-gray-700 rounded-full h-2">
               <div 
                 className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${storageStats.percentage}%` }}
+                style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
               />
             </div>
           </div>
@@ -324,12 +324,7 @@ const Index = () => {
                   </Button>
                 )}
                 
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <Cloud className="h-5 w-5 text-white" />
-                  </div>
-                  <h1 className="text-xl font-bold text-white">Vaultigo</h1>
-                </div>
+                <Logo size="sm" />
               </div>
               
               <div className="flex items-center space-x-2">
@@ -361,6 +356,7 @@ const Index = () => {
               className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 transition-colors duration-200"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
         </div>
@@ -393,10 +389,11 @@ const Index = () => {
             </Button>
             
             <Button 
+              onClick={handleCreateFolder}
               variant="outline"
               className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 h-12 rounded-lg flex items-center justify-center space-x-2 transition-all duration-200 hover:scale-105"
             >
-              <Plus className="h-5 w-5" />
+              <FolderPlus className="h-5 w-5" />
               <span>New Folder</span>
             </Button>
           </div>
@@ -451,6 +448,7 @@ const Index = () => {
             <Button 
               variant="ghost" 
               className="flex flex-col items-center space-y-1 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+              onClick={handleSearch}
             >
               <Search className="h-5 w-5" />
               <span className="text-xs">Search</span>

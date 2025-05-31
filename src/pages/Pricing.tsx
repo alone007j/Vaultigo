@@ -1,13 +1,16 @@
 
 import { useState } from 'react';
-import { Check, ArrowLeft, X } from 'lucide-react';
+import { Check, ArrowLeft, X, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { Logo } from '@/components/Logo';
+import { useToast } from '@/hooks/use-toast';
 
 const Pricing = () => {
-  const [selectedPlan, setSelectedPlan] = useState('starter');
+  const [selectedPlan, setSelectedPlan] = useState('pro');
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const plans = [
     {
@@ -18,7 +21,7 @@ const Pricing = () => {
       period: '',
       icon: '⚡',
       color: 'from-gray-600 to-gray-700',
-      popular: true,
+      popular: false,
       features: [
         '10 GB Free Storage',
         'Upload, Download, Organize files',
@@ -37,7 +40,7 @@ const Pricing = () => {
       period: '/month',
       icon: '🚀',
       color: 'from-blue-600 to-cyan-500',
-      popular: false,
+      popular: true,
       features: [
         '1 TB Storage',
         'All Free Plan features',
@@ -98,8 +101,23 @@ const Pricing = () => {
     },
   ];
 
+  const handlePlanSelection = (planId: string) => {
+    setSelectedPlan(planId);
+    const plan = plans.find(p => p.id === planId);
+    
+    if (planId === 'starter') {
+      navigate('/auth');
+    } else {
+      toast({
+        title: "Plan Selected",
+        description: `You've selected the ${plan?.name} plan. This would redirect to payment processing.`,
+      });
+      // In a real app, this would redirect to payment processing
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 text-white">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <Button
@@ -110,12 +128,7 @@ const Pricing = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-cyan-400 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">V</span>
-          </div>
-          <span className="text-xl font-bold">Vaultigo</span>
-        </div>
+        <Logo size="sm" />
         <Button
           variant="ghost"
           size="icon"
@@ -130,11 +143,11 @@ const Pricing = () => {
         {/* Hero Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 bg-cyan-500/20 px-4 py-2 rounded-full mb-6">
-            <span className="text-cyan-400">⚡</span>
+            <Star className="h-4 w-4 text-cyan-400" />
             <span className="text-cyan-400 font-medium">Next-Generation Cloud Storage</span>
           </div>
           
-          <h1 className="text-4xl font-bold mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">
             Secure, Smart,{' '}
             <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Lightning Fast
@@ -142,16 +155,22 @@ const Pricing = () => {
             Cloud Storage
           </h1>
           
-          <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-300 text-base mb-8 max-w-2xl mx-auto">
             Experience the future of cloud storage with AI-powered organization, military-grade security, 
             and seamless integration across all your devices.
           </p>
 
-          <div className="flex justify-center space-x-4 mb-8">
-            <Button className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-8 py-3 rounded-xl">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+            <Button
+              onClick={() => navigate('/auth')}
+              className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-6 py-3 rounded-xl text-base font-semibold"
+            >
               Get Started Free →
             </Button>
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 py-3 rounded-xl">
+            <Button
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10 px-6 py-3 rounded-xl text-base"
+            >
               Watch Demo
             </Button>
           </div>
@@ -162,33 +181,33 @@ const Pricing = () => {
           {features.map((feature, index) => (
             <div key={index} className="bg-white/5 backdrop-blur-sm rounded-xl p-4">
               <div className="text-2xl mb-2">{feature.icon}</div>
-              <h3 className="font-semibold mb-1">{feature.title}</h3>
-              <p className="text-sm text-gray-300">{feature.description}</p>
+              <h3 className="font-semibold mb-1 text-sm">{feature.title}</h3>
+              <p className="text-xs text-gray-300">{feature.description}</p>
             </div>
           ))}
         </div>
 
         {/* Choose Your Plan */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-2">
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">
             Choose Your{' '}
             <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Perfect Plan
             </span>
           </h2>
-          <p className="text-gray-300">
-            Start free and scale as you grow. All plans include our core security features and 30-day money-back guarantee.
+          <p className="text-gray-300 text-sm">
+            Start free and scale as you grow. All plans include our core security features.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`relative bg-white/10 backdrop-blur-sm rounded-2xl p-6 border transition-all duration-300 ${
+              className={`relative bg-white/10 backdrop-blur-sm rounded-2xl p-6 border transition-all duration-300 cursor-pointer ${
                 selectedPlan === plan.id
-                  ? 'border-cyan-400 shadow-lg shadow-cyan-400/20'
+                  ? 'border-cyan-400 shadow-lg shadow-cyan-400/20 scale-105'
                   : 'border-white/20'
               }`}
               onClick={() => setSelectedPlan(plan.id)}
@@ -217,16 +236,25 @@ const Pricing = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 mb-6">
-                {plan.features.map((feature, index) => (
+              <div className="space-y-2 mb-6">
+                {plan.features.slice(0, 4).map((feature, index) => (
                   <div key={index} className="flex items-center space-x-3">
                     <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
                     <span className="text-sm text-gray-300">{feature}</span>
                   </div>
                 ))}
+                {plan.features.length > 4 && (
+                  <div className="text-sm text-gray-400">
+                    +{plan.features.length - 4} more features
+                  </div>
+                )}
               </div>
 
               <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlanSelection(plan.id);
+                }}
                 className={`w-full h-12 rounded-xl font-semibold transition-all duration-300 ${
                   plan.id === 'pro'
                     ? 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 hover:scale-105'
@@ -248,13 +276,7 @@ const Pricing = () => {
             onClick={() => navigate('/auth')}
             className="text-cyan-400 hover:bg-cyan-400/10"
           >
-            Log In
-          </Button>
-          <Button
-            onClick={() => navigate('/auth')}
-            className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-8 py-3 rounded-xl"
-          >
-            Get Started
+            Already have an account?
           </Button>
         </div>
       </div>
