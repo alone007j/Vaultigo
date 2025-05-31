@@ -21,10 +21,22 @@ const RedirectHandler = () => {
 
   useEffect(() => {
     if (!loading) {
-      if (user && location.pathname === '/') {
+      console.log('Redirect handler - User:', user, 'Path:', location.pathname);
+      
+      // If user is authenticated and on landing or auth page, redirect to dashboard
+      if (user && (location.pathname === '/' || location.pathname === '/auth')) {
+        console.log('Redirecting authenticated user to dashboard');
         navigate('/dashboard');
-      } else if (!user && location.pathname === '/dashboard') {
+      } 
+      // If user is not authenticated and trying to access dashboard, redirect to auth
+      else if (!user && location.pathname === '/dashboard') {
+        console.log('Redirecting unauthenticated user to auth');
         navigate('/auth');
+      }
+      // If user is not authenticated and on landing page, stay there
+      else if (!user && location.pathname === '/') {
+        console.log('Unauthenticated user on landing page');
+        // Stay on landing page
       }
     }
   }, [user, loading, navigate, location.pathname]);

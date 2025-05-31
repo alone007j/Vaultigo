@@ -20,8 +20,9 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
-  const { profile, subscription, loading, updateProfile } = useUserProfile(user?.id || null);
+  const { profile, subscription, loading, updateProfile, uploadAvatar } = useUserProfile(user?.id || null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -31,24 +32,55 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
 
   useEffect(() => {
     if (profile) {
+      console.log('Profile loaded:', profile);
       setFormData({
         full_name: profile.full_name || '',
-        email: profile.email || '',
+        email: profile.email || user?.email || '',
       });
       setAvatarPreview(profile.avatar_url || '');
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
-      await updateProfile(formData);
-      setIsEditing(false);
+      console.log('Saving profile changes...');
+      
+      // Upload avatar if a new file was selected
+      if (avatarFile) {
+        console.log('Uploading avatar...');
+        const uploadResult = await uploadAvatar(avatarFile);
+        if (!uploadResult.success) {
+          setIsSaving(false);
+          return;
+        }
+        setAvatarPreview(uploadResult.url || '');
+      }
+
+      // Update profile data
+      console.log('Updating profile data:', formData);
+      const result = await updateProfile({
+        full_name: formData.full_name,
+        email: formData.email,
+      });
+
+      if (result?.success) {
+        setIsEditing(false);
+        setAvatarFile(null);
+        toast({
+          title: "Success",
+          description: "Profile updated successfully!",
+        });
+      }
     } catch (error) {
+      console.error('Profile save error:', error);
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: "Failed to save profile changes",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -56,7 +88,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
     if (profile) {
       setFormData({
         full_name: profile.full_name || '',
-        email: profile.email || '',
+        email: profile.email || user?.email || '',
       });
       setAvatarPreview(profile.avatar_url || '');
     }
@@ -67,6 +99,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log('Avatar file selected:', file.name);
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = () => {
@@ -146,6 +179,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 value={formData.full_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
                 className="bg-gray-800 border-gray-700 text-white focus:border-blue-500 transition-colors duration-200"
+                placeholder="Enter your full name"
               />
             ) : (
               <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{formData.full_name || 'Not set'}</p>
@@ -189,14 +223,16 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
             <>
               <Button 
                 onClick={handleSave} 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105"
+                disabled={isSaving}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105 disabled:opacity-50"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Changes
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button 
                 variant="outline" 
                 onClick={handleCancel}
+                disabled={isSaving}
                 className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
               >
                 <X className="h-4 w-4 mr-2" />

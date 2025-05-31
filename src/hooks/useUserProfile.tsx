@@ -54,33 +54,43 @@ export const useUserProfile = (userId: string | null) => {
 
     const fetchUserData = async () => {
       try {
+        console.log('Fetching user data for:', userId);
+        
         // Fetch profile
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', userId)
           .single();
 
+        if (profileError) console.log('Profile error:', profileError);
+
         // Fetch settings
-        const { data: settingsData } = await supabase
+        const { data: settingsData, error: settingsError } = await supabase
           .from('user_settings')
           .select('*')
           .eq('user_id', userId)
           .single();
 
+        if (settingsError) console.log('Settings error:', settingsError);
+
         // Fetch storage usage
-        const { data: storageData } = await supabase
+        const { data: storageData, error: storageError } = await supabase
           .from('storage_usage')
           .select('*')
           .eq('user_id', userId)
           .single();
 
+        if (storageError) console.log('Storage error:', storageError);
+
         // Fetch subscription
-        const { data: subscriptionData } = await supabase
+        const { data: subscriptionData, error: subscriptionError } = await supabase
           .from('subscribers')
           .select('*')
           .eq('user_id', userId)
           .single();
+
+        if (subscriptionError) console.log('Subscription error:', subscriptionError);
 
         setProfile(profileData);
         setSettings(settingsData);
@@ -100,24 +110,34 @@ export const useUserProfile = (userId: string | null) => {
     if (!userId) return;
 
     try {
-      const { error } = await supabase
+      console.log('Updating profile with:', updates);
+      const { data, error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile update error:', error);
+        throw error;
+      }
 
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
+      console.log('Profile updated successfully:', data);
+      setProfile(data);
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated",
       });
+      return { success: true };
     } catch (error) {
+      console.error('Profile update failed:', error);
       toast({
         title: "Error",
         description: "Failed to update profile",
         variant: "destructive",
       });
+      return { success: false, error };
     }
   };
 
@@ -125,24 +145,68 @@ export const useUserProfile = (userId: string | null) => {
     if (!userId) return;
 
     try {
-      const { error } = await supabase
+      console.log('Updating settings with:', updates);
+      const { data, error } = await supabase
         .from('user_settings')
         .update(updates)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Settings update error:', error);
+        throw error;
+      }
 
-      setSettings(prev => prev ? { ...prev, ...updates } : null);
+      console.log('Settings updated successfully:', data);
+      setSettings(data);
       toast({
         title: "Settings updated",
         description: "Your settings have been successfully updated",
       });
+      return { success: true };
     } catch (error) {
+      console.error('Settings update failed:', error);
       toast({
         title: "Error",
         description: "Failed to update settings",
         variant: "destructive",
       });
+      return { success: false, error };
+    }
+  };
+
+  const uploadAvatar = async (file: File) => {
+    if (!userId) return { success: false };
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      await updateProfile({ avatar_url: publicUrl });
+      
+      return { success: true, url: publicUrl };
+    } catch (error) {
+      console.error('Avatar upload failed:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload avatar",
+        variant: "destructive",
+      });
+      return { success: false, error };
     }
   };
 
@@ -154,5 +218,6 @@ export const useUserProfile = (userId: string | null) => {
     loading,
     updateProfile,
     updateSettings,
+    uploadAvatar,
   };
 };

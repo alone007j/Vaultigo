@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Settings, Shield, Bell, Download, Globe, Palette, X, Languages, Trash2, HardDrive, LogOut } from 'lucide-react';
+import { Settings, Shield, Bell, Download, Globe, Palette, X, Languages, Trash2, HardDrive, LogOut, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -21,7 +20,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
   const { user } = useAuth();
   const { settings, loading, updateSettings } = useUserProfile(user?.id || null);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [localSettings, setLocalSettings] = useState({
     notifications: true,
@@ -33,8 +32,30 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
     auto_download: false,
   });
 
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Español' },
+    { code: 'fr', name: 'Français' },
+    { code: 'de', name: 'Deutsch' },
+    { code: 'zh', name: '中文' },
+    { code: 'ja', name: '日本語' },
+    { code: 'ko', name: '한국어' },
+    { code: 'ru', name: 'Русский' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'hi', name: 'हिंदी' },
+    { code: 'pt', name: 'Português' },
+    { code: 'it', name: 'Italiano' },
+    { code: 'nl', name: 'Nederlands' },
+    { code: 'sv', name: 'Svenska' },
+    { code: 'pl', name: 'Polski' },
+    { code: 'tr', name: 'Türkçe' },
+    { code: 'th', name: 'ไทย' },
+    { code: 'vi', name: 'Tiếng Việt' },
+  ];
+
   useEffect(() => {
     if (settings) {
+      console.log('Settings loaded:', settings);
       setLocalSettings({
         notifications: settings.notifications,
         auto_sync: settings.auto_sync,
@@ -51,11 +72,27 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
     const newSettings = { ...localSettings, [key]: value };
     setLocalSettings(newSettings);
     
+    setIsSaving(true);
     try {
-      await updateSettings({ [key]: value });
+      console.log(`Updating ${key} to:`, value);
+      const result = await updateSettings({ [key]: value });
+      if (result?.success) {
+        toast({
+          title: "Settings updated",
+          description: `${key.replace('_', ' ')} has been updated successfully`,
+        });
+      }
     } catch (error) {
+      console.error('Settings update failed:', error);
       // Revert on error
       setLocalSettings(localSettings);
+      toast({
+        title: "Error",
+        description: "Failed to update settings",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -66,9 +103,10 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       
       toast({
         title: "Success",
-        description: "Signed out from all other devices",
+        description: "Signed out from all other devices successfully",
       });
     } catch (error) {
+      console.error('Sign out error:', error);
       toast({
         title: "Error",
         description: "Failed to sign out from other devices",
@@ -77,27 +115,58 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
     }
   };
 
-  const handleChangePassword = () => {
-    toast({
-      title: "Password Reset",
-      description: "Password reset link will be sent to your email",
-    });
-    // In a real app, this would trigger a password reset email
+  const handleChangePassword = async () => {
+    try {
+      if (!user?.email) {
+        toast({
+          title: "Error",
+          description: "No email address found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for password reset instructions",
+      });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleClearCache = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    toast({
-      title: "Cache cleared",
-      description: "Local cache has been cleared successfully",
-    });
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      toast({
+        title: "Cache cleared",
+        description: "Local cache has been cleared successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to clear cache",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleOptimizeStorage = () => {
     toast({
       title: "Storage optimized",
-      description: "Storage optimization completed",
+      description: "Storage optimization completed successfully",
     });
   };
 
@@ -148,6 +217,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
             <Switch
               id="notifications"
               checked={localSettings.notifications}
+              disabled={isSaving}
               onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
             />
           </div>
@@ -157,6 +227,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
             <Switch
               id="auto-sync"
               checked={localSettings.auto_sync}
+              disabled={isSaving}
               onCheckedChange={(checked) => handleSettingChange('auto_sync', checked)}
             />
           </div>
@@ -166,6 +237,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
             <Switch
               id="auto-download"
               checked={localSettings.auto_download}
+              disabled={isSaving}
               onCheckedChange={(checked) => handleSettingChange('auto_download', checked)}
             />
           </div>
@@ -182,7 +254,11 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
           
           <div className="flex items-center justify-between">
             <Label className="text-white">Theme</Label>
-            <Select value={localSettings.theme} onValueChange={(value) => handleSettingChange('theme', value)}>
+            <Select 
+              value={localSettings.theme} 
+              onValueChange={(value) => handleSettingChange('theme', value)}
+              disabled={isSaving}
+            >
               <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
                 <SelectValue />
               </SelectTrigger>
@@ -199,16 +275,20 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               <Languages className="h-4 w-4" />
               <span>Language</span>
             </Label>
-            <Select value={localSettings.language} onValueChange={(value) => handleSettingChange('language', value)}>
+            <Select 
+              value={localSettings.language} 
+              onValueChange={(value) => handleSettingChange('language', value)}
+              disabled={isSaving}
+            >
               <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="en" className="text-white">English</SelectItem>
-                <SelectItem value="es" className="text-white">Spanish</SelectItem>
-                <SelectItem value="fr" className="text-white">French</SelectItem>
-                <SelectItem value="de" className="text-white">German</SelectItem>
-                <SelectItem value="zh" className="text-white">Chinese</SelectItem>
+              <SelectContent className="bg-gray-800 border-gray-700 max-h-40">
+                {languages.map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code} className="text-white">
+                    {lang.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -228,6 +308,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
             <Switch
               id="2fa"
               checked={localSettings.two_factor_enabled}
+              disabled={isSaving}
               onCheckedChange={(checked) => handleSettingChange('two_factor_enabled', checked)}
             />
           </div>
@@ -237,6 +318,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
             <Switch
               id="public-sharing"
               checked={localSettings.public_sharing}
+              disabled={isSaving}
               onCheckedChange={(checked) => handleSettingChange('public_sharing', checked)}
             />
           </div>
@@ -247,6 +329,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               variant="outline"
               className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
             >
+              <Key className="h-4 w-4 mr-2" />
               Change Password
             </Button>
             
