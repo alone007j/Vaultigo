@@ -1,15 +1,15 @@
+
 import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Shield, Edit, Camera, Save, Crown, Sparkles, CheckCircle } from 'lucide-react';
+import { Camera, Save, Edit, User, Mail, Calendar, Shield, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface UserProfileProps {
@@ -33,7 +33,6 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
 
   useEffect(() => {
     if (profile) {
-      console.log('Profile loaded:', profile);
       setFormData({
         full_name: profile.full_name || '',
         email: profile.email || user?.email || '',
@@ -45,23 +44,14 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      console.log('Saving profile changes...');
-      
       let avatarUrl = profile?.avatar_url;
       
       if (avatarFile) {
-        console.log('Uploading avatar...');
         const uploadResult = await uploadAvatar(avatarFile);
         if (uploadResult.success) {
           avatarUrl = uploadResult.url;
           setAvatarPreview(uploadResult.url || '');
-          console.log('Avatar uploaded successfully:', uploadResult.url);
-          toast({
-            title: "Success",
-            description: "Avatar uploaded successfully!",
-          });
         } else {
-          console.error('Avatar upload failed:', uploadResult.error);
           toast({
             title: "Error",
             description: "Failed to upload avatar. Please try again.",
@@ -72,7 +62,6 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         }
       }
 
-      console.log('Updating profile data:', formData);
       const result = await updateProfile({
         full_name: formData.full_name,
         email: formData.email,
@@ -82,13 +71,11 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
       if (result.success) {
         setIsEditing(false);
         setAvatarFile(null);
-        console.log('Profile updated successfully');
         toast({
           title: "Success",
           description: "Profile updated successfully!",
         });
       } else {
-        console.error('Profile update failed:', result.error);
         toast({
           title: "Error",
           description: "Failed to update profile. Please try again.",
@@ -108,74 +95,54 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
   };
 
   const handleCancel = () => {
+    setIsEditing(false);
+    setAvatarFile(null);
+    setAvatarPreview(profile?.avatar_url || '');
     if (profile) {
       setFormData({
         full_name: profile.full_name || '',
         email: profile.email || user?.email || '',
       });
-      setAvatarPreview(profile.avatar_url || '');
     }
-    setAvatarFile(null);
-    setIsEditing(false);
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      console.log('Avatar file selected:', file.name, file.size);
-      
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "Avatar file size must be less than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Error",
-          description: "Please select a valid image file",
-          variant: "destructive",
-        });
-        return;
-      }
-
       setAvatarFile(file);
       const reader = new FileReader();
-      reader.onload = () => {
-        setAvatarPreview(reader.result as string);
+      reader.onload = (e) => {
+        setAvatarPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const getPlanDetails = (tier: string) => {
-    switch (tier?.toLowerCase()) {
+    switch (tier.toLowerCase()) {
       case 'pro':
-        return { 
-          icon: <Sparkles className="h-4 w-4" />, 
-          color: 'from-blue-500 to-cyan-500',
-          bgColor: 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20',
-          borderColor: 'border-blue-500/50',
-          textColor: 'text-blue-400'
+        return {
+          color: 'from-blue-600 to-blue-800',
+          bgColor: 'bg-blue-600',
+          textColor: 'text-white',
+          borderColor: 'border-blue-500',
+          icon: '⭐'
         };
       case 'elite':
-        return { 
-          icon: <Crown className="h-4 w-4" />, 
-          color: 'from-purple-500 to-pink-500',
-          bgColor: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20',
-          borderColor: 'border-purple-500/50',
-          textColor: 'text-purple-400'
+        return {
+          color: 'from-purple-600 to-purple-800',
+          bgColor: 'bg-purple-600',
+          textColor: 'text-white',
+          borderColor: 'border-purple-500',
+          icon: '👑'
         };
       default:
-        return { 
-          icon: <User className="h-4 w-4" />, 
-          color: 'from-gray-500 to-gray-600',
-          bgColor: 'bg-gradient-to-r from-gray-500/20 to-gray-600/20',
-          borderColor: 'border-gray-500/50',
-          textColor: 'text-gray-400'
+        return {
+          color: 'from-gray-600 to-gray-800',
+          bgColor: 'bg-gray-600',
+          textColor: 'text-white',
+          borderColor: 'border-gray-500',
+          icon: '⚡'
         };
     }
   };

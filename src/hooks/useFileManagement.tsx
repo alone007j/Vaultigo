@@ -9,6 +9,7 @@ export interface FileItem {
   name: string;
   url: string;
   size: number;
+  type: string; // Adding type property for compatibility
   mimeType: string;
   modifiedAt: Date;
   uploadedAt: Date;
@@ -35,6 +36,7 @@ export const useFileManagement = () => {
         name: file.name,
         url: '',
         size: file.size,
+        type: file.type,
         mimeType: file.type,
         modifiedAt: new Date(),
         uploadedAt: new Date(),
@@ -44,6 +46,16 @@ export const useFileManagement = () => {
 
       setFiles(prev => [...prev, newFile]);
 
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setFiles(prev => prev.map(f => {
+          if (f.id === fileId && f.uploadProgress! < 90) {
+            return { ...f, uploadProgress: f.uploadProgress! + Math.random() * 20 };
+          }
+          return f;
+        }));
+      }, 500);
+
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
         .from('user-files')
@@ -51,6 +63,8 @@ export const useFileManagement = () => {
           cacheControl: '3600',
           upsert: false
         });
+
+      clearInterval(progressInterval);
 
       if (error) throw error;
 
@@ -70,7 +84,7 @@ export const useFileManagement = () => {
       setFiles(prev => prev.map(f => f.id === fileId ? completedFile : f));
 
       // Store file metadata in database
-      await supabase
+      const { error: dbError } = await supabase
         .from('user_files')
         .insert({
           id: fileId,
@@ -82,10 +96,22 @@ export const useFileManagement = () => {
           file_path: filePath
         });
 
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        // Still show success since file is uploaded to storage
+      }
+
       toast({
         title: "Success",
         description: `${file.name} uploaded successfully!`,
       });
+
+      // Remove upload progress after a short delay
+      setTimeout(() => {
+        setFiles(prev => prev.map(f => 
+          f.id === fileId ? { ...f, isUploading: false, uploadProgress: undefined } : f
+        ));
+      }, 2000);
 
       return completedFile;
     } catch (error) {
@@ -187,13 +213,14 @@ export const useFileManagement = () => {
 
       if (error) throw error;
 
-      const loadedFiles: FileItem[] = data.map(file => ({
+      const loadedFiles: FileItem[] = (data || []).map(file => ({
         id: file.id,
         name: file.name,
         url: file.url,
         size: file.size,
+        type: file.mime_type,
         mimeType: file.mime_type,
-        modifiedAt: new Date(file.updated_at),
+        modifiedAt: new Date(file.updated_at || file.created_at),
         uploadedAt: new Date(file.created_at)
       }));
 

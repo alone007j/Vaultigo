@@ -34,7 +34,14 @@ export const FilesSection = () => {
 
   const handleShare = (file: FileItem) => {
     navigator.clipboard.writeText(file.url);
-    // Toast notification handled in FilePreviewModal
+  };
+
+  const handleDownload = async (file: FileItem) => {
+    await downloadFile(file);
+  };
+
+  const handleDelete = async (fileId: string) => {
+    await deleteFile(fileId);
   };
 
   if (loading) {
@@ -94,12 +101,12 @@ export const FilesSection = () => {
                           <div className="mt-2">
                             <div className="flex justify-between text-xs text-gray-400 mb-1">
                               <span>Uploading...</span>
-                              <span>{file.uploadProgress}%</span>
+                              <span>{Math.round(file.uploadProgress || 0)}%</span>
                             </div>
                             <div className="w-full bg-gray-700 rounded-full h-1">
                               <div 
                                 className="bg-blue-500 h-1 rounded-full transition-all duration-300"
-                                style={{ width: `${file.uploadProgress}%` }}
+                                style={{ width: `${file.uploadProgress || 0}%` }}
                               />
                             </div>
                           </div>
@@ -117,7 +124,7 @@ export const FilesSection = () => {
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => downloadFile(file)}
+                              onClick={() => handleDownload(file)}
                               className="bg-blue-600 hover:bg-blue-700"
                             >
                               <Download className="h-3 w-3" />
@@ -125,7 +132,7 @@ export const FilesSection = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => deleteFile(file.id)}
+                              onClick={() => handleDelete(file.id)}
                               className="border-red-600 bg-red-900/20 text-red-400 hover:bg-red-900/40"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -147,9 +154,9 @@ export const FilesSection = () => {
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
         file={selectedFile}
-        onDownload={downloadFile}
+        onDownload={handleDownload}
         onShare={handleShare}
-        onDelete={deleteFile}
+        onDelete={(file) => handleDelete(file.id)}
       />
     </div>
   );
