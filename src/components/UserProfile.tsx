@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Shield, Edit, Camera, Save } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Edit, Camera, Save, Crown, Sparkles, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,7 +50,6 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
       
       let avatarUrl = profile?.avatar_url;
       
-      // Upload avatar if a new file was selected
       if (avatarFile) {
         console.log('Uploading avatar...');
         const uploadResult = await uploadAvatar(avatarFile);
@@ -70,7 +69,6 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         }
       }
 
-      // Update profile data
       console.log('Updating profile data:', formData);
       const result = await updateProfile({
         full_name: formData.full_name,
@@ -123,7 +121,6 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
     if (file) {
       console.log('Avatar file selected:', file.name, file.size);
       
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "Error",
@@ -133,7 +130,6 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         return;
       }
       
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Error",
@@ -152,36 +148,75 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
     }
   };
 
+  const getPlanDetails = (tier: string) => {
+    switch (tier?.toLowerCase()) {
+      case 'pro':
+        return { 
+          icon: <Sparkles className="h-4 w-4" />, 
+          color: 'from-blue-500 to-cyan-500',
+          bgColor: 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20',
+          borderColor: 'border-blue-500/50',
+          textColor: 'text-blue-400'
+        };
+      case 'elite':
+        return { 
+          icon: <Crown className="h-4 w-4" />, 
+          color: 'from-purple-500 to-pink-500',
+          bgColor: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20',
+          borderColor: 'border-purple-500/50',
+          textColor: 'text-purple-400'
+        };
+      default:
+        return { 
+          icon: <User className="h-4 w-4" />, 
+          color: 'from-gray-500 to-gray-600',
+          bgColor: 'bg-gradient-to-r from-gray-500/20 to-gray-600/20',
+          borderColor: 'border-gray-500/50',
+          textColor: 'text-gray-400'
+        };
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 rounded-lg">
-        <div className="text-gray-400">Loading profile...</div>
+      <div className="flex items-center justify-center py-12 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl border border-slate-700/50">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+          <div className="text-slate-400">Loading profile...</div>
+        </div>
       </div>
     );
   }
 
+  const planDetails = getPlanDetails(subscription?.subscription_tier || 'free');
+
   return (
-    <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 rounded-lg border border-gray-700 max-w-md mx-auto">
-      <DialogHeader className="p-6 border-b border-gray-700">
-        <DialogTitle className="text-white flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
-            <span>User Profile</span>
-          </div>
-        </DialogTitle>
-      </DialogHeader>
-      
-      <div className="space-y-6 p-6">
-        <div className="flex flex-col items-center space-y-4">
+    <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-2xl border border-slate-700/50 shadow-2xl max-w-md mx-auto overflow-hidden">
+      {/* Header with gradient overlay */}
+      <div className="relative">
+        <div className={`h-24 bg-gradient-to-r ${planDetails.color} opacity-80`}></div>
+        <div className="absolute top-4 right-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white/80 hover:text-white hover:bg-white/10 rounded-full h-8 w-8"
+          >
+            ×
+          </Button>
+        </div>
+        
+        {/* Avatar positioned over header */}
+        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2">
           <div className="relative">
-            <Avatar className="h-20 w-20 ring-2 ring-blue-600">
-              <AvatarImage src={avatarPreview} alt="Profile picture" />
-              <AvatarFallback className="bg-blue-600 text-white text-xl">
-                {formData.full_name ? formData.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+            <Avatar className="h-24 w-24 ring-4 ring-white/20 ring-offset-4 ring-offset-slate-900 shadow-xl">
+              <AvatarImage src={avatarPreview} alt="Profile picture" className="object-cover" />
+              <AvatarFallback className={`${planDetails.bgColor} ${planDetails.textColor} text-2xl font-bold border-2 ${planDetails.borderColor}`}>
+                {formData.full_name ? formData.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
               </AvatarFallback>
             </Avatar>
             {isEditing && (
-              <label className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700 transition-all duration-200 hover:scale-110">
+              <label className="absolute bottom-2 right-2 p-2 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700 transition-all duration-200 hover:scale-110 shadow-lg">
                 <Camera className="h-3 w-3 text-white" />
                 <input
                   type="file"
@@ -192,74 +227,101 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
               </label>
             )}
           </div>
-          
-          <div className="text-center">
-            <Badge className="bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-              {subscription?.subscription_tier || 'Free'} Plan
-            </Badge>
-          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="pt-16 pb-6 px-6 space-y-6">
+        {/* Plan Badge */}
+        <div className="text-center">
+          <Badge className={`${planDetails.bgColor} ${planDetails.textColor} border ${planDetails.borderColor} px-4 py-2 text-sm font-medium`}>
+            {planDetails.icon}
+            <span className="ml-2 capitalize">{subscription?.subscription_tier || 'Free'} Plan</span>
+          </Badge>
         </div>
 
-        <Separator className="bg-gray-700" />
+        <Separator className="bg-slate-700/50" />
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-white flex items-center space-x-2">
-              <User className="h-4 w-4" />
+        {/* Profile Fields */}
+        <div className="space-y-5">
+          {/* Full Name */}
+          <div className="space-y-3">
+            <Label htmlFor="name" className="text-slate-300 flex items-center space-x-2 text-sm font-medium">
+              <User className="h-4 w-4 text-blue-400" />
               <span>Full Name</span>
             </Label>
             {isEditing ? (
-              <Input
-                id="name"
-                value={formData.full_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                className="bg-gray-800 border-gray-700 text-white focus:border-blue-500 transition-colors duration-200"
-                placeholder="Enter your full name"
-              />
+              <div className="relative">
+                <Input
+                  id="name"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                  className="bg-slate-800/80 border-slate-600/50 text-white focus:border-blue-500 focus:ring-blue-500/20 rounded-xl pl-4 pr-4 py-3 transition-all duration-200"
+                  placeholder="Enter your full name"
+                />
+              </div>
             ) : (
-              <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{formData.full_name || 'Not set'}</p>
+              <div className="bg-slate-800/50 border border-slate-700/50 px-4 py-3 rounded-xl">
+                <p className="text-white font-medium">{formData.full_name || 'Not set'}</p>
+              </div>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-white flex items-center space-x-2">
-              <Mail className="h-4 w-4" />
+          {/* Email */}
+          <div className="space-y-3">
+            <Label htmlFor="email" className="text-slate-300 flex items-center space-x-2 text-sm font-medium">
+              <Mail className="h-4 w-4 text-blue-400" />
               <span>Email Address</span>
             </Label>
-            <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{user?.email || 'Not set'}</p>
+            <div className="bg-slate-800/50 border border-slate-700/50 px-4 py-3 rounded-xl flex items-center justify-between">
+              <p className="text-white font-medium">{user?.email || 'Not set'}</p>
+              <CheckCircle className="h-4 w-4 text-green-400" />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-white flex items-center space-x-2">
-              <Calendar className="h-4 w-4" />
+          {/* Member Since */}
+          <div className="space-y-3">
+            <Label className="text-slate-300 flex items-center space-x-2 text-sm font-medium">
+              <Calendar className="h-4 w-4 text-blue-400" />
               <span>Member Since</span>
             </Label>
-            <p className="text-white bg-gray-800 px-3 py-2 rounded-md">
-              {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
-            </p>
+            <div className="bg-slate-800/50 border border-slate-700/50 px-4 py-3 rounded-xl">
+              <p className="text-white font-medium">
+                {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                }) : 'Unknown'}
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-white flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
+          {/* Account Security */}
+          <div className="space-y-3">
+            <Label className="text-slate-300 flex items-center space-x-2 text-sm font-medium">
+              <Shield className="h-4 w-4 text-blue-400" />
               <span>Account Security</span>
             </Label>
-            <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-md">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-400 text-sm">Account secured</span>
+            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 px-4 py-3 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-green-400 font-medium">Account Secured</span>
+                <CheckCircle className="h-4 w-4 text-green-400" />
+              </div>
             </div>
           </div>
         </div>
 
-        <Separator className="bg-gray-700" />
+        <Separator className="bg-slate-700/50" />
 
+        {/* Action Buttons */}
         <div className="flex space-x-3">
           {isEditing ? (
             <>
               <Button 
                 onClick={handleSave} 
                 disabled={isSaving}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105 disabled:opacity-50"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 rounded-xl py-3 font-medium shadow-lg"
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isSaving ? 'Saving...' : 'Save Changes'}
@@ -268,28 +330,19 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 variant="outline" 
                 onClick={handleCancel}
                 disabled={isSaving}
-                className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
+                className="border-slate-600/50 bg-slate-800/50 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all duration-200 rounded-xl py-3"
               >
                 Cancel
               </Button>
             </>
           ) : (
-            <>
-              <Button 
-                onClick={() => setIsEditing(true)} 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={onClose}
-                className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
-              >
-                Close
-              </Button>
-            </>
+            <Button 
+              onClick={() => setIsEditing(true)} 
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white transition-all duration-200 hover:scale-105 rounded-xl py-3 font-medium shadow-lg"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
           )}
         </div>
       </div>
