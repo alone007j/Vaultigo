@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User, Mail, Calendar, Shield, Edit, Camera, Save, Crown, Sparkles, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -56,10 +57,6 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           avatarUrl = uploadResult.url;
           setAvatarPreview(uploadResult.url || '');
           console.log('Avatar uploaded successfully:', uploadResult.url);
-          toast({
-            title: "Success",
-            description: "Avatar uploaded successfully!",
-          });
         } else {
           console.error('Avatar upload failed:', uploadResult.error);
           toast({
@@ -198,6 +195,16 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
       {/* Header with gradient overlay */}
       <div className="relative">
         <div className={`h-24 bg-gradient-to-r ${planDetails.color} opacity-80`}></div>
+        <div className="absolute top-4 right-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white/80 hover:text-white hover:bg-white/10 rounded-full h-8 w-8"
+          >
+            ×
+          </Button>
+        </div>
         
         {/* Avatar positioned over header */}
         <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2">

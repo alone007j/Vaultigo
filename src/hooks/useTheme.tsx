@@ -23,22 +23,14 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     if (newTheme === 'light') {
       root.classList.add('light');
       document.body.style.backgroundColor = '#ffffff';
-      document.body.style.color = '#000000';
     } else if (newTheme === 'dark') {
       root.classList.add('dark');
       document.body.style.backgroundColor = '#0f172a';
-      document.body.style.color = '#ffffff';
     } else {
       // System theme
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       root.classList.add(prefersDark ? 'dark' : 'light');
-      if (prefersDark) {
-        document.body.style.backgroundColor = '#0f172a';
-        document.body.style.color = '#ffffff';
-      } else {
-        document.body.style.backgroundColor = '#ffffff';
-        document.body.style.color = '#000000';
-      }
+      document.body.style.backgroundColor = prefersDark ? '#0f172a' : '#ffffff';
     }
   };
 
