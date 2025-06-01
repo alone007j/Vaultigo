@@ -56,7 +56,7 @@ export const useUserProfile = (userId: string | null) => {
       try {
         console.log('Fetching user data for:', userId);
         
-        // Fetch profile
+        // Fetch or create profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -65,9 +65,22 @@ export const useUserProfile = (userId: string | null) => {
 
         if (profileError && profileError.code !== 'PGRST116') {
           console.error('Profile error:', profileError);
+        } else if (!profileData) {
+          // Create profile if it doesn't exist
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([{ user_id: userId, full_name: '', email: '' }])
+            .select()
+            .single();
+          
+          if (!createError) {
+            setProfile(newProfile);
+          }
+        } else {
+          setProfile(profileData);
         }
 
-        // Fetch settings
+        // Fetch or create settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('user_settings')
           .select('*')
@@ -76,6 +89,19 @@ export const useUserProfile = (userId: string | null) => {
 
         if (settingsError && settingsError.code !== 'PGRST116') {
           console.error('Settings error:', settingsError);
+        } else if (!settingsData) {
+          // Create settings if they don't exist
+          const { data: newSettings, error: createError } = await supabase
+            .from('user_settings')
+            .insert([{ user_id: userId }])
+            .select()
+            .single();
+          
+          if (!createError) {
+            setSettings(newSettings);
+          }
+        } else {
+          setSettings(settingsData);
         }
 
         // Fetch storage usage
@@ -87,6 +113,8 @@ export const useUserProfile = (userId: string | null) => {
 
         if (storageError && storageError.code !== 'PGRST116') {
           console.error('Storage error:', storageError);
+        } else {
+          setStorageUsage(storageData);
         }
 
         // Fetch subscription
@@ -98,12 +126,9 @@ export const useUserProfile = (userId: string | null) => {
 
         if (subscriptionError && subscriptionError.code !== 'PGRST116') {
           console.error('Subscription error:', subscriptionError);
+        } else {
+          setSubscription(subscriptionData);
         }
-
-        setProfile(profileData);
-        setSettings(settingsData);
-        setStorageUsage(storageData);
-        setSubscription(subscriptionData);
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -115,24 +140,24 @@ export const useUserProfile = (userId: string | null) => {
   }, [userId]);
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!userId || !profile) return { success: false };
+    if (!userId) return { success: false };
 
     try {
       console.log('Updating profile with:', updates);
       
       const { data, error } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          user_id: userId,
           ...updates,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', userId)
         .select()
         .single();
 
       if (error) {
         console.error('Profile update error:', error);
-        throw error;
+        return { success: false, error };
       }
 
       console.log('Profile updated successfully:', data);
@@ -153,17 +178,17 @@ export const useUserProfile = (userId: string | null) => {
       
       const { data, error } = await supabase
         .from('user_settings')
-        .update({
+        .upsert({
+          user_id: userId,
           ...updates,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', userId)
         .select()
         .single();
 
       if (error) {
         console.error('Settings update error:', error);
-        throw error;
+        return { success: false, error };
       }
 
       console.log('Settings updated successfully:', data);
@@ -181,7 +206,7 @@ export const useUserProfile = (userId: string | null) => {
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}.${fileExt}`;
+      const fileName = `avatar-${Date.now()}.${fileExt}`;
       const filePath = `${userId}/${fileName}`;
 
       console.log('Uploading avatar to:', filePath);
@@ -192,22 +217,16 @@ export const useUserProfile = (userId: string | null) => {
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        throw uploadError;
+        return { success: false, error: uploadError };
       }
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      console.log('Avatar uploaded, updating profile with URL:', publicUrl);
+      console.log('Avatar uploaded, URL:', publicUrl);
       
-      const updateResult = await updateProfile({ avatar_url: publicUrl });
-      
-      if (updateResult.success) {
-        return { success: true, url: publicUrl };
-      } else {
-        throw new Error('Failed to update profile with new avatar URL');
-      }
+      return { success: true, url: publicUrl };
     } catch (error) {
       console.error('Avatar upload failed:', error);
       return { success: false, error };

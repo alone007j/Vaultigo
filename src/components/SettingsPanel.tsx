@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Settings, Shield, Bell, Download, Globe, Palette, X, Languages, Trash2, HardDrive, LogOut, Key } from 'lucide-react';
+import { Settings, Shield, Bell, Globe, Palette, Languages, Trash2, HardDrive, LogOut, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -63,49 +63,58 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       setLocalSettings({
         notifications: settings.notifications ?? true,
         auto_sync: settings.auto_sync ?? true,
-        theme: settings.theme || 'dark',
-        language: settings.language || 'en',
+        theme: settings.theme || theme,
+        language: settings.language || currentLanguage,
         two_factor_enabled: settings.two_factor_enabled ?? false,
         public_sharing: settings.public_sharing ?? false,
         auto_download: settings.auto_download ?? false,
       });
     }
-  }, [settings]);
+  }, [settings, theme, currentLanguage]);
 
   const handleSettingChange = async (key: string, value: any) => {
     setIsSaving(true);
     try {
       console.log(`Updating ${key} to:`, value);
       
+      // Update local state immediately for better UX
+      setLocalSettings(prev => ({ ...prev, [key]: value }));
+      
+      // Handle special cases first
+      if (key === 'language') {
+        setLanguage(value);
+        console.log('Language changed to:', value);
+      }
+      if (key === 'theme') {
+        setTheme(value);
+        console.log('Theme changed to:', value);
+      }
+      
+      // Update in database
       const result = await updateSettings({ [key]: value });
       
       if (result?.success) {
-        setLocalSettings(prev => ({ ...prev, [key]: value }));
-        
-        // Handle special cases
-        if (key === 'language') {
-          setLanguage(value);
-        }
-        if (key === 'theme') {
-          setTheme(value);
-        }
-        
         toast({
-          title: t('success'),
-          description: t('settingsUpdated'),
+          title: "Success",
+          description: `${key.replace('_', ' ')} updated successfully!`,
         });
       } else {
+        // Revert local change if database update failed
+        setLocalSettings(prev => ({ ...prev, [key]: localSettings[key as keyof typeof localSettings] }));
+        console.error('Settings update failed:', result?.error);
         toast({
-          title: t('error'),
-          description: "Failed to update settings",
+          title: "Error",
+          description: `Failed to update ${key.replace('_', ' ')}. Please try again.`,
           variant: "destructive",
         });
       }
     } catch (error) {
+      // Revert local change if error occurred
+      setLocalSettings(prev => ({ ...prev, [key]: localSettings[key as keyof typeof localSettings] }));
       console.error('Settings update failed:', error);
       toast({
-        title: t('error'),
-        description: "Failed to update settings",
+        title: "Error",
+        description: `Failed to update ${key.replace('_', ' ')}. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -119,13 +128,13 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       if (error) throw error;
       
       toast({
-        title: t('success'),
+        title: "Success",
         description: "Signed out from all devices successfully",
       });
     } catch (error) {
       console.error('Sign out error:', error);
       toast({
-        title: t('error'),
+        title: "Error",
         description: "Failed to sign out from other devices",
         variant: "destructive",
       });
@@ -136,7 +145,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
     try {
       if (!user?.email) {
         toast({
-          title: t('error'),
+          title: "Error",
           description: "No email address found",
           variant: "destructive",
         });
@@ -150,13 +159,13 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       if (error) throw error;
 
       toast({
-        title: t('success'),
+        title: "Success",
         description: "Check your email for password reset instructions",
       });
     } catch (error) {
       console.error('Password reset error:', error);
       toast({
-        title: t('error'),
+        title: "Error",
         description: "Failed to send password reset email",
         variant: "destructive",
       });
@@ -165,15 +174,22 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
 
   const handleClearCache = () => {
     try {
-      localStorage.clear();
+      // Clear specific app data, not all localStorage
+      const keysToKeep = ['vaultigo-theme', 'vaultigo-language'];
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (!keysToKeep.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      });
       sessionStorage.clear();
       toast({
-        title: t('success'),
+        title: "Success",
         description: "Cache cleared successfully",
       });
     } catch (error) {
       toast({
-        title: t('error'),
+        title: "Error",
         description: "Failed to clear cache",
         variant: "destructive",
       });
@@ -182,22 +198,22 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
 
   const handleOptimizeStorage = () => {
     toast({
-      title: t('success'),
+      title: "Success",
       description: "Storage optimized successfully",
     });
   };
 
   const handleEmptyTrash = () => {
     toast({
-      title: t('success'),
+      title: "Success",
       description: "Trash emptied successfully",
     });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-gray-400">Loading...</div>
+      <div className="flex items-center justify-center py-8 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 rounded-lg">
+        <div className="text-gray-400">Loading settings...</div>
       </div>
     );
   }
@@ -208,16 +224,8 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
         <DialogTitle className="text-white flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Settings className="h-5 w-5" />
-            <span>{t('settings')}</span>
+            <span>Settings</span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogTitle>
       </DialogHeader>
       
@@ -226,11 +234,11 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center space-x-2">
             <Bell className="h-4 w-4" />
-            <span>{t('general')}</span>
+            <span>General</span>
           </h3>
           
           <div className="flex items-center justify-between">
-            <Label htmlFor="notifications" className="text-white">{t('notifications')}</Label>
+            <Label htmlFor="notifications" className="text-white">Notifications</Label>
             <Switch
               id="notifications"
               checked={localSettings.notifications}
@@ -240,7 +248,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
           </div>
           
           <div className="flex items-center justify-between">
-            <Label htmlFor="auto-sync" className="text-white">{t('autoSync')}</Label>
+            <Label htmlFor="auto-sync" className="text-white">Auto Sync</Label>
             <Switch
               id="auto-sync"
               checked={localSettings.auto_sync}
@@ -250,7 +258,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="auto-download" className="text-white">{t('autoDownload')}</Label>
+            <Label htmlFor="auto-download" className="text-white">Auto Download</Label>
             <Switch
               id="auto-download"
               checked={localSettings.auto_download}
@@ -266,13 +274,13 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center space-x-2">
             <Palette className="h-4 w-4" />
-            <span>{t('appearance')}</span>
+            <span>Appearance</span>
           </h3>
           
           <div className="flex items-center justify-between">
-            <Label className="text-white">{t('theme')}</Label>
+            <Label className="text-white">Theme</Label>
             <Select 
-              value={theme} 
+              value={localSettings.theme} 
               onValueChange={(value) => handleSettingChange('theme', value)}
               disabled={isSaving}
             >
@@ -280,9 +288,9 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="dark" className="text-white">{t('dark')}</SelectItem>
-                <SelectItem value="light" className="text-white">{t('light')}</SelectItem>
-                <SelectItem value="system" className="text-white">{t('system')}</SelectItem>
+                <SelectItem value="dark" className="text-white">Dark</SelectItem>
+                <SelectItem value="light" className="text-white">Light</SelectItem>
+                <SelectItem value="system" className="text-white">System</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -290,10 +298,10 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
           <div className="flex items-center justify-between">
             <Label className="text-white flex items-center space-x-2">
               <Languages className="h-4 w-4" />
-              <span>{t('language')}</span>
+              <span>Language</span>
             </Label>
             <Select 
-              value={currentLanguage} 
+              value={localSettings.language} 
               onValueChange={(value) => handleSettingChange('language', value)}
               disabled={isSaving}
             >
@@ -317,11 +325,11 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center space-x-2">
             <Shield className="h-4 w-4" />
-            <span>{t('security')}</span>
+            <span>Security</span>
           </h3>
           
           <div className="flex items-center justify-between">
-            <Label htmlFor="2fa" className="text-white">{t('twoFactor')}</Label>
+            <Label htmlFor="2fa" className="text-white">Two Factor Auth</Label>
             <Switch
               id="2fa"
               checked={localSettings.two_factor_enabled}
@@ -331,7 +339,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
           </div>
           
           <div className="flex items-center justify-between">
-            <Label htmlFor="public-sharing" className="text-white">{t('publicSharing')}</Label>
+            <Label htmlFor="public-sharing" className="text-white">Public Sharing</Label>
             <Switch
               id="public-sharing"
               checked={localSettings.public_sharing}
@@ -347,7 +355,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
             >
               <Key className="h-4 w-4 mr-2" />
-              {t('changePassword')}
+              Change Password
             </Button>
             
             <Button
@@ -356,7 +364,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
             >
               <LogOut className="h-4 w-4 mr-2" />
-              {t('signOutAllDevices')}
+              Sign Out All Devices
             </Button>
           </div>
         </div>
@@ -367,7 +375,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
         <div className="space-y-4">
           <h3 className="text-white font-semibold flex items-center space-x-2">
             <HardDrive className="h-4 w-4" />
-            <span>{t('storageManagement')}</span>
+            <span>Storage Management</span>
           </h3>
           
           <div className="space-y-2">
@@ -376,7 +384,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               variant="outline"
               className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
             >
-              {t('clearCache')}
+              Clear Cache
             </Button>
             
             <Button
@@ -384,7 +392,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               variant="outline"
               className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
             >
-              {t('optimizeStorage')}
+              Optimize Storage
             </Button>
             
             <Button
@@ -393,9 +401,21 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700 text-red-400 hover:text-red-300"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              {t('emptyTrash')}
+              Empty Trash
             </Button>
           </div>
+        </div>
+
+        <Separator className="bg-gray-700" />
+
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="w-full border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
+          >
+            Close Settings
+          </Button>
         </div>
       </div>
     </div>

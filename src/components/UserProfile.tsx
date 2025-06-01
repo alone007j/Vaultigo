@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Shield, Edit, Camera, Save, X } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Edit, Camera, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,10 +57,12 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         if (uploadResult.success) {
           avatarUrl = uploadResult.url;
           setAvatarPreview(uploadResult.url || '');
+          console.log('Avatar uploaded successfully:', uploadResult.url);
         } else {
+          console.error('Avatar upload failed:', uploadResult.error);
           toast({
-            title: t('error'),
-            description: "Failed to upload avatar",
+            title: "Error",
+            description: "Failed to upload avatar. Please try again.",
             variant: "destructive",
           });
           setIsSaving(false);
@@ -79,22 +81,24 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
       if (result.success) {
         setIsEditing(false);
         setAvatarFile(null);
+        console.log('Profile updated successfully');
         toast({
-          title: t('success'),
-          description: t('profileUpdated'),
+          title: "Success",
+          description: "Profile updated successfully!",
         });
       } else {
+        console.error('Profile update failed:', result.error);
         toast({
-          title: t('error'),
-          description: "Failed to update profile",
+          title: "Error",
+          description: "Failed to update profile. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Profile save error:', error);
       toast({
-        title: t('error'),
-        description: "Failed to save profile changes",
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -117,7 +121,28 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log('Avatar file selected:', file.name);
+      console.log('Avatar file selected:', file.name, file.size);
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Avatar file size must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please select a valid image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = () => {
@@ -129,8 +154,8 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-gray-400">Loading...</div>
+      <div className="flex items-center justify-center py-8 bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 rounded-lg">
+        <div className="text-gray-400">Loading profile...</div>
       </div>
     );
   }
@@ -141,16 +166,8 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         <DialogTitle className="text-white flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <User className="h-5 w-5" />
-            <span>{t('userProfile')}</span>
+            <span>User Profile</span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogTitle>
       </DialogHeader>
       
@@ -158,7 +175,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
             <Avatar className="h-20 w-20 ring-2 ring-blue-600">
-              <AvatarImage src={avatarPreview} />
+              <AvatarImage src={avatarPreview} alt="Profile picture" />
               <AvatarFallback className="bg-blue-600 text-white text-xl">
                 {formData.full_name ? formData.full_name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
               </AvatarFallback>
@@ -189,7 +206,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label htmlFor="name" className="text-white flex items-center space-x-2">
               <User className="h-4 w-4" />
-              <span>{t('fullName')}</span>
+              <span>Full Name</span>
             </Label>
             {isEditing ? (
               <Input
@@ -207,7 +224,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label htmlFor="email" className="text-white flex items-center space-x-2">
               <Mail className="h-4 w-4" />
-              <span>{t('emailAddress')}</span>
+              <span>Email Address</span>
             </Label>
             <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{user?.email || 'Not set'}</p>
           </div>
@@ -215,7 +232,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label className="text-white flex items-center space-x-2">
               <Calendar className="h-4 w-4" />
-              <span>{t('memberSince')}</span>
+              <span>Member Since</span>
             </Label>
             <p className="text-white bg-gray-800 px-3 py-2 rounded-md">
               {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
@@ -225,7 +242,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label className="text-white flex items-center space-x-2">
               <Shield className="h-4 w-4" />
-              <span>{t('accountSecurity')}</span>
+              <span>Account Security</span>
             </Label>
             <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-md">
               <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -245,7 +262,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105 disabled:opacity-50"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isSaving ? t('saving') : t('saveChanges')}
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button 
                 variant="outline" 
@@ -253,7 +270,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 disabled={isSaving}
                 className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
               >
-                {t('cancel')}
+                Cancel
               </Button>
             </>
           ) : (
@@ -263,14 +280,14 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105"
               >
                 <Edit className="h-4 w-4 mr-2" />
-                {t('editProfile')}
+                Edit Profile
               </Button>
               <Button 
                 variant="outline" 
                 onClick={onClose}
                 className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
               >
-                {t('close')}
+                Close
               </Button>
             </>
           )}

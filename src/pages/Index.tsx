@@ -23,6 +23,8 @@ const Index = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
   const { user, signOut } = useAuth();
   const { profile, subscription, storageUsage, loading } = useUserProfile(user?.id || null);
@@ -57,6 +59,19 @@ const Index = () => {
 
   const handleNotificationToggle = () => {
     setShowNotifications(!showNotifications);
+  };
+
+  const handleFileUpload = async (files: File[]) => {
+    setIsUploading(true);
+    try {
+      console.log('Files uploaded:', files);
+      setUploadedFiles(prev => [...prev, ...files]);
+      // Here you would implement actual file upload to Supabase storage
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const storagePercentage = storageUsage 
@@ -190,7 +205,7 @@ const Index = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <UploadArea />
+                <UploadArea onFileUpload={handleFileUpload} isUploading={isUploading} />
               </CardContent>
             </Card>
           </div>
@@ -269,9 +284,27 @@ const Index = () => {
             <CardTitle className="text-white">{t('recentFiles')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-gray-400">
-              No files uploaded yet. Start by uploading your first file!
-            </div>
+            {uploadedFiles.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {uploadedFiles.map((file, index) => (
+                  <div key={index} className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <Upload className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium truncate">{file.name}</p>
+                        <p className="text-gray-400 text-sm">{formatBytes(file.size)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                No files uploaded yet. Start by uploading your first file!
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -294,7 +327,7 @@ const Index = () => {
         onClose={handleWelcomeClose}
       />
 
-      {/* Notifications Dropdown */}
+      {/* Real Notifications - Only show when there are actual notifications */}
       {showNotifications && (
         <div className="fixed top-20 right-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 z-50 w-80">
           <div className="flex justify-between items-center mb-3">
