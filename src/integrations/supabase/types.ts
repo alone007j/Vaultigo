@@ -99,42 +99,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_files: {
-        Row: {
-          created_at: string | null
-          file_path: string
-          id: string
-          mime_type: string
-          name: string
-          size: number
-          updated_at: string | null
-          url: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          file_path: string
-          id: string
-          mime_type: string
-          name: string
-          size: number
-          updated_at?: string | null
-          url: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          file_path?: string
-          id?: string
-          mime_type?: string
-          name?: string
-          size?: number
-          updated_at?: string | null
-          url?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_settings: {
         Row: {
           auto_download: boolean | null
