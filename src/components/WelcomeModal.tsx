@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, Star, X } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -14,49 +15,50 @@ interface WelcomeModalProps {
 
 export const WelcomeModal = ({ isOpen, onClose }: WelcomeModalProps) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const plans = [
     {
       id: 'free',
-      name: 'Free Plan',
+      name: t('freePlan'),
       price: 'Free',
       period: '',
       icon: '⚡',
       color: 'from-gray-600 to-gray-700',
       features: [
-        '10 GB Storage',
-        'Basic file management',
-        'Standard upload speed',
-        'Community support'
+        '10 GB ' + t('storage'),
+        t('basicFileManagement'),
+        t('standardUploadSpeed'),
+        t('communitySupport')
       ],
     },
     {
       id: 'pro',
-      name: 'Pro Plan',
+      name: t('proPlan'),
       price: '$9.99',
       period: '/month',
       icon: '🚀',
       color: 'from-blue-600 to-cyan-500',
       popular: true,
       features: [
-        '1 TB Storage',
-        'Advanced AI features',
-        'Fast upload/download',
-        'Priority support'
+        '1 TB ' + t('storage'),
+        t('advancedAIFeatures'),
+        t('fastUploadDownload'),
+        t('prioritySupport')
       ],
     },
     {
       id: 'elite',
-      name: 'Elite Plan',
+      name: t('elitePlan'),
       price: '$19.99',
       period: '/month',
       icon: '👑',
       color: 'from-purple-600 to-pink-500',
       features: [
-        '5 TB Storage',
-        'Full AI Assistant',
-        'Enhanced security',
-        'VIP support 24/7'
+        '5 TB ' + t('storage'),
+        t('fullAIAssistant'),
+        t('enhancedSecurity'),
+        t('vipSupport')
       ],
     },
   ];
@@ -86,7 +88,7 @@ export const WelcomeModal = ({ isOpen, onClose }: WelcomeModalProps) => {
             <div className="flex flex-col items-center space-y-4 mb-4">
               <Logo size="lg" />
               <div>
-                <h2 className="text-2xl font-bold">Welcome to Vaultigo!</h2>
+                <h2 className="text-2xl font-bold">{t('welcome')}</h2>
                 <p className="text-gray-300 text-sm mt-2">Choose your perfect plan to get started</p>
               </div>
             </div>
@@ -102,7 +104,7 @@ export const WelcomeModal = ({ isOpen, onClose }: WelcomeModalProps) => {
             >
               {plan.popular && (
                 <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-cyan-400 to-blue-400 text-white px-3 py-1">
-                  Most Popular
+                  {t('mostPopular')}
                 </Badge>
               )}
               
@@ -143,7 +145,7 @@ export const WelcomeModal = ({ isOpen, onClose }: WelcomeModalProps) => {
                     : 'bg-gray-700 hover:bg-gray-600'
                 }`}
               >
-                {plan.id === 'free' ? 'Start Free' : `Choose ${plan.name}`}
+                {plan.id === 'free' ? t('startFree') : `${t('choosePlan')}`}
               </Button>
             </div>
           ))}

@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface UserProfileProps {
   onClose: () => void;
@@ -24,6 +25,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
   const { user } = useAuth();
   const { profile, subscription, loading, updateProfile, uploadAvatar } = useUserProfile(user?.id || null);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -46,15 +48,24 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
     try {
       console.log('Saving profile changes...');
       
+      let avatarUrl = profile?.avatar_url;
+      
       // Upload avatar if a new file was selected
       if (avatarFile) {
         console.log('Uploading avatar...');
         const uploadResult = await uploadAvatar(avatarFile);
-        if (!uploadResult.success) {
+        if (uploadResult.success) {
+          avatarUrl = uploadResult.url;
+          setAvatarPreview(uploadResult.url || '');
+        } else {
+          toast({
+            title: t('error'),
+            description: "Failed to upload avatar",
+            variant: "destructive",
+          });
           setIsSaving(false);
           return;
         }
-        setAvatarPreview(uploadResult.url || '');
       }
 
       // Update profile data
@@ -62,20 +73,27 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
       const result = await updateProfile({
         full_name: formData.full_name,
         email: formData.email,
+        ...(avatarUrl && { avatar_url: avatarUrl })
       });
 
-      if (result?.success) {
+      if (result.success) {
         setIsEditing(false);
         setAvatarFile(null);
         toast({
-          title: "Success",
-          description: "Profile updated successfully!",
+          title: t('success'),
+          description: t('profileUpdated'),
+        });
+      } else {
+        toast({
+          title: t('error'),
+          description: "Failed to update profile",
+          variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Profile save error:', error);
       toast({
-        title: "Error",
+        title: t('error'),
         description: "Failed to save profile changes",
         variant: "destructive",
       });
@@ -118,12 +136,12 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
   }
 
   return (
-    <>
-      <DialogHeader>
+    <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 rounded-lg border border-gray-700 max-w-md mx-auto">
+      <DialogHeader className="p-6 border-b border-gray-700">
         <DialogTitle className="text-white flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <User className="h-5 w-5" />
-            <span>User Profile</span>
+            <span>{t('userProfile')}</span>
           </div>
           <Button
             variant="ghost"
@@ -136,7 +154,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
         </DialogTitle>
       </DialogHeader>
       
-      <div className="space-y-6 py-4">
+      <div className="space-y-6 p-6">
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
             <Avatar className="h-20 w-20 ring-2 ring-blue-600">
@@ -171,7 +189,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label htmlFor="name" className="text-white flex items-center space-x-2">
               <User className="h-4 w-4" />
-              <span>Full Name</span>
+              <span>{t('fullName')}</span>
             </Label>
             {isEditing ? (
               <Input
@@ -189,7 +207,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label htmlFor="email" className="text-white flex items-center space-x-2">
               <Mail className="h-4 w-4" />
-              <span>Email Address</span>
+              <span>{t('emailAddress')}</span>
             </Label>
             <p className="text-white bg-gray-800 px-3 py-2 rounded-md">{user?.email || 'Not set'}</p>
           </div>
@@ -197,7 +215,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label className="text-white flex items-center space-x-2">
               <Calendar className="h-4 w-4" />
-              <span>Member Since</span>
+              <span>{t('memberSince')}</span>
             </Label>
             <p className="text-white bg-gray-800 px-3 py-2 rounded-md">
               {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
@@ -207,7 +225,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
           <div className="space-y-2">
             <Label className="text-white flex items-center space-x-2">
               <Shield className="h-4 w-4" />
-              <span>Account Security</span>
+              <span>{t('accountSecurity')}</span>
             </Label>
             <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-md">
               <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -227,7 +245,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105 disabled:opacity-50"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Changes'}
+                {isSaving ? t('saving') : t('saveChanges')}
               </Button>
               <Button 
                 variant="outline" 
@@ -235,8 +253,7 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 disabled={isSaving}
                 className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
               >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
+                {t('cancel')}
               </Button>
             </>
           ) : (
@@ -246,19 +263,19 @@ export const UserProfile = ({ onClose }: UserProfileProps) => {
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105"
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
+                {t('editProfile')}
               </Button>
               <Button 
                 variant="outline" 
                 onClick={onClose}
                 className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
               >
-                Close
+                {t('close')}
               </Button>
             </>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };

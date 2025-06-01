@@ -61,36 +61,44 @@ export const useUserProfile = (userId: string | null) => {
           .from('profiles')
           .select('*')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
-        if (profileError) console.log('Profile error:', profileError);
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Profile error:', profileError);
+        }
 
         // Fetch settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('user_settings')
           .select('*')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
-        if (settingsError) console.log('Settings error:', settingsError);
+        if (settingsError && settingsError.code !== 'PGRST116') {
+          console.error('Settings error:', settingsError);
+        }
 
         // Fetch storage usage
         const { data: storageData, error: storageError } = await supabase
           .from('storage_usage')
           .select('*')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
-        if (storageError) console.log('Storage error:', storageError);
+        if (storageError && storageError.code !== 'PGRST116') {
+          console.error('Storage error:', storageError);
+        }
 
         // Fetch subscription
         const { data: subscriptionData, error: subscriptionError } = await supabase
           .from('subscribers')
           .select('*')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
-        if (subscriptionError) console.log('Subscription error:', subscriptionError);
+        if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+          console.error('Subscription error:', subscriptionError);
+        }
 
         setProfile(profileData);
         setSettings(settingsData);
@@ -107,13 +115,17 @@ export const useUserProfile = (userId: string | null) => {
   }, [userId]);
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!userId) return;
+    if (!userId || !profile) return { success: false };
 
     try {
       console.log('Updating profile with:', updates);
+      
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('user_id', userId)
         .select()
         .single();
@@ -125,30 +137,26 @@ export const useUserProfile = (userId: string | null) => {
 
       console.log('Profile updated successfully:', data);
       setProfile(data);
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated",
-      });
+      
       return { success: true };
     } catch (error) {
       console.error('Profile update failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
       return { success: false, error };
     }
   };
 
   const updateSettings = async (updates: Partial<UserSettings>) => {
-    if (!userId) return;
+    if (!userId) return { success: false };
 
     try {
       console.log('Updating settings with:', updates);
+      
       const { data, error } = await supabase
         .from('user_settings')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('user_id', userId)
         .select()
         .single();
@@ -160,18 +168,10 @@ export const useUserProfile = (userId: string | null) => {
 
       console.log('Settings updated successfully:', data);
       setSettings(data);
-      toast({
-        title: "Settings updated",
-        description: "Your settings have been successfully updated",
-      });
+      
       return { success: true };
     } catch (error) {
       console.error('Settings update failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update settings",
-        variant: "destructive",
-      });
       return { success: false, error };
     }
   };
@@ -182,13 +182,16 @@ export const useUserProfile = (userId: string | null) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `${userId}/${fileName}`;
+
+      console.log('Uploading avatar to:', filePath);
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
 
@@ -196,16 +199,17 @@ export const useUserProfile = (userId: string | null) => {
         .from('avatars')
         .getPublicUrl(filePath);
 
-      await updateProfile({ avatar_url: publicUrl });
+      console.log('Avatar uploaded, updating profile with URL:', publicUrl);
       
-      return { success: true, url: publicUrl };
+      const updateResult = await updateProfile({ avatar_url: publicUrl });
+      
+      if (updateResult.success) {
+        return { success: true, url: publicUrl };
+      } else {
+        throw new Error('Failed to update profile with new avatar URL');
+      }
     } catch (error) {
       console.error('Avatar upload failed:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload avatar",
-        variant: "destructive",
-      });
       return { success: false, error };
     }
   };
