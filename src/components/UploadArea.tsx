@@ -66,18 +66,23 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
     
     setUploadingFiles(prev => [...prev, ...newUploadingFiles]);
     
-    // Simulate upload progress
-    newUploadingFiles.forEach((uploadFile, index) => {
+    // Simulate upload progress and auto-remove completed uploads
+    newUploadingFiles.forEach((uploadFile) => {
       const interval = setInterval(() => {
         setUploadingFiles(prev => {
           const updated = [...prev];
           const fileIndex = updated.findIndex(f => f.file === uploadFile.file);
           if (fileIndex !== -1) {
-            updated[fileIndex].progress += Math.random() * 20;
+            updated[fileIndex].progress += Math.random() * 15 + 5;
             if (updated[fileIndex].progress >= 100) {
               updated[fileIndex].progress = 100;
               updated[fileIndex].status = 'completed';
               clearInterval(interval);
+              
+              // Remove completed file after 2 seconds
+              setTimeout(() => {
+                setUploadingFiles(prev => prev.filter(f => f.file !== uploadFile.file));
+              }, 2000);
             }
           }
           return updated;
@@ -88,8 +93,8 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
     onFileUpload(files);
     
     toast({
-      title: "Files uploaded",
-      description: `${files.length} file(s) uploaded successfully`,
+      title: "Upload Started",
+      description: `Uploading ${files.length} file(s)...`,
     });
   };
 
@@ -111,7 +116,7 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
         onDrop={handleDrop}
       >
         <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-lg font-medium mb-2">Drop files here</h3>
+        <h3 className="text-lg font-medium mb-2 text-white">Drop files here</h3>
         <p className="text-muted-foreground mb-4">
           or click to browse your files
         </p>
@@ -122,7 +127,7 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
           className="hidden"
           id="file-upload"
         />
-        <Button asChild>
+        <Button asChild className="bg-blue-600 hover:bg-blue-700">
           <label htmlFor="file-upload" className="cursor-pointer">
             Choose Files
           </label>
@@ -131,7 +136,7 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
 
       {uploadingFiles.length > 0 && (
         <Card className="p-4 bg-white/5 border-white/10">
-          <h4 className="font-medium mb-3">Uploading files</h4>
+          <h4 className="font-medium mb-3 text-white">Uploading files</h4>
           <div className="space-y-3">
             {uploadingFiles.map((uploadFile, index) => {
               const Icon = getFileIcon(uploadFile.file.type);
@@ -140,19 +145,28 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
                   <Icon className="h-5 w-5 text-gray-400" />
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium truncate">
+                      <span className="text-sm font-medium truncate text-white">
                         {uploadFile.file.name}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeUploadingFile(uploadFile.file)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        {uploadFile.status === 'completed' && (
+                          <span className="text-xs text-green-400">✓ Complete</span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeUploadingFile(uploadFile.file)}
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Progress value={uploadFile.progress} className="flex-1" />
+                      <Progress 
+                        value={uploadFile.progress} 
+                        className="flex-1 h-2"
+                      />
                       <span className="text-xs text-muted-foreground">
                         {Math.round(uploadFile.progress)}%
                       </span>
