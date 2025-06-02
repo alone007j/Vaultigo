@@ -17,6 +17,16 @@ interface SettingsPanelProps {
   onClose: () => void;
 }
 
+interface LocalSettings {
+  notifications: boolean;
+  auto_sync: boolean;
+  theme: string;
+  language: string;
+  two_factor_enabled: boolean;
+  public_sharing: boolean;
+  auto_download: boolean;
+}
+
 export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
   const { user, signOut } = useAuth();
   const { settings, loading, updateSettings } = useUserProfile(user?.id || null);
@@ -25,7 +35,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
   const { theme, setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
 
-  const [localSettings, setLocalSettings] = useState({
+  const [localSettings, setLocalSettings] = useState<LocalSettings>({
     notifications: true,
     auto_sync: true,
     theme: 'dark',
@@ -57,7 +67,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
     }
   }, [settings, theme, currentLanguage]);
 
-  const handleSettingChange = async (key: string, value: any) => {
+  const handleSettingChange = async (key: keyof LocalSettings, value: string | boolean) => {
     if (isSaving) return;
     
     setIsSaving(true);
@@ -69,11 +79,11 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       
       // Handle special cases first
       if (key === 'language') {
-        setLanguage(value);
+        setLanguage(value as string);
         console.log('Language changed to:', value);
       }
       if (key === 'theme') {
-        setTheme(value);
+        setTheme(value as string);
         console.log('Theme changed to:', value);
       }
       
@@ -82,7 +92,7 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       
       if (result?.success) {
         console.log(`${key} updated successfully`);
-        // Only show success toast for important changes
+        // Show success toast for important changes
         if (key === 'language' || key === 'theme') {
           toast({
             title: "Settings Updated",
@@ -94,7 +104,10 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
         setLocalSettings(prev => {
           const reverted = { ...prev };
           if (settings) {
-            reverted[key as keyof typeof localSettings] = settings[key as keyof typeof settings] ?? prev[key as keyof typeof localSettings];
+            const settingValue = settings[key as keyof typeof settings];
+            if (settingValue !== undefined) {
+              (reverted as any)[key] = settingValue;
+            }
           }
           return reverted;
         });
@@ -111,7 +124,10 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       setLocalSettings(prev => {
         const reverted = { ...prev };
         if (settings) {
-          reverted[key as keyof typeof localSettings] = settings[key as keyof typeof settings] ?? prev[key as keyof typeof localSettings];
+          const settingValue = settings[key as keyof typeof settings];
+          if (settingValue !== undefined) {
+            (reverted as any)[key] = settingValue;
+          }
         }
         return reverted;
       });
