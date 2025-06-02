@@ -77,30 +77,46 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       // Update local state immediately for better UX
       setLocalSettings(prev => ({ ...prev, [key]: value }));
       
-      // Handle special cases first
+      // Handle special cases first and track if they succeed
+      let specialCaseSuccess = true;
+      
       if (key === 'language') {
-        setLanguage(value as string);
-        console.log('Language changed to:', value);
+        try {
+          setLanguage(value as string);
+          console.log('Language changed successfully to:', value);
+        } catch (error) {
+          console.error('Language change failed:', error);
+          specialCaseSuccess = false;
+        }
       }
+      
       if (key === 'theme') {
-        setTheme(value as string);
-        console.log('Theme changed to:', value);
+        try {
+          setTheme(value as string);
+          console.log('Theme changed successfully to:', value);
+        } catch (error) {
+          console.error('Theme change failed:', error);
+          specialCaseSuccess = false;
+        }
       }
       
       // Update in database
       const result = await updateSettings({ [key]: value });
       
-      if (result?.success) {
+      // Check if both special case and database update succeeded
+      const overallSuccess = specialCaseSuccess && (result?.success !== false);
+      
+      if (overallSuccess) {
         console.log(`${key} updated successfully`);
         // Show success toast for important changes
         if (key === 'language' || key === 'theme') {
           toast({
             title: "Settings Updated",
-            description: `${key.replace('_', ' ')} has been updated successfully`,
+            description: `${key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ')} has been updated successfully`,
           });
         }
       } else {
-        // Revert local change if database update failed
+        // Revert local change if either operation failed
         setLocalSettings(prev => {
           const reverted = { ...prev };
           if (settings) {
@@ -111,6 +127,14 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
           }
           return reverted;
         });
+        
+        // Revert special cases if they were applied
+        if (key === 'language' && !specialCaseSuccess) {
+          setLanguage(currentLanguage);
+        }
+        if (key === 'theme' && !specialCaseSuccess) {
+          setTheme(theme);
+        }
         
         console.error('Settings update failed:', result?.error);
         toast({
@@ -131,6 +155,14 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
         }
         return reverted;
       });
+      
+      // Revert special cases
+      if (key === 'language') {
+        setLanguage(currentLanguage);
+      }
+      if (key === 'theme') {
+        setTheme(theme);
+      }
       
       console.error('Settings update failed:', error);
       toast({
