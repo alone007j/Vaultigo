@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Settings, Shield, Bell, Globe, Palette, Languages, Trash2, HardDrive, LogOut, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,20 +40,6 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
     { code: 'hi', name: 'हिंदी (Hindi)' },
     { code: 'es', name: 'Español' },
     { code: 'fr', name: 'Français' },
-    { code: 'de', name: 'Deutsch' },
-    { code: 'zh', name: '中文' },
-    { code: 'ja', name: '日本語' },
-    { code: 'ko', name: '한국어' },
-    { code: 'ru', name: 'Русский' },
-    { code: 'ar', name: 'العربية' },
-    { code: 'pt', name: 'Português' },
-    { code: 'it', name: 'Italiano' },
-    { code: 'nl', name: 'Nederlands' },
-    { code: 'sv', name: 'Svenska' },
-    { code: 'pl', name: 'Polski' },
-    { code: 'tr', name: 'Türkçe' },
-    { code: 'th', name: 'ไทย' },
-    { code: 'vi', name: 'Tiếng Việt' },
   ];
 
   useEffect(() => {
@@ -73,6 +58,8 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
   }, [settings, theme, currentLanguage]);
 
   const handleSettingChange = async (key: string, value: any) => {
+    if (isSaving) return;
+    
     setIsSaving(true);
     try {
       console.log(`Updating ${key} to:`, value);
@@ -94,23 +81,41 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
       const result = await updateSettings({ [key]: value });
       
       if (result?.success) {
-        toast({
-          title: "Success",
-          description: `${key.replace('_', ' ')} updated successfully!`,
-        });
+        console.log(`${key} updated successfully`);
+        // Only show success toast for important changes
+        if (key === 'language' || key === 'theme') {
+          toast({
+            title: "Settings Updated",
+            description: `${key.replace('_', ' ')} has been updated successfully`,
+          });
+        }
       } else {
         // Revert local change if database update failed
-        setLocalSettings(prev => ({ ...prev, [key]: localSettings[key as keyof typeof localSettings] }));
+        setLocalSettings(prev => {
+          const reverted = { ...prev };
+          if (settings) {
+            reverted[key as keyof typeof localSettings] = settings[key as keyof typeof settings] ?? prev[key as keyof typeof localSettings];
+          }
+          return reverted;
+        });
+        
         console.error('Settings update failed:', result?.error);
         toast({
-          title: "Error",
+          title: "Update Failed",
           description: `Failed to update ${key.replace('_', ' ')}. Please try again.`,
           variant: "destructive",
         });
       }
     } catch (error) {
       // Revert local change if error occurred
-      setLocalSettings(prev => ({ ...prev, [key]: localSettings[key as keyof typeof localSettings] }));
+      setLocalSettings(prev => {
+        const reverted = { ...prev };
+        if (settings) {
+          reverted[key as keyof typeof localSettings] = settings[key as keyof typeof settings] ?? prev[key as keyof typeof localSettings];
+        }
+        return reverted;
+      });
+      
       console.error('Settings update failed:', error);
       toast({
         title: "Error",
@@ -226,6 +231,14 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
             <Settings className="h-5 w-5" />
             <span>Settings</span>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-gray-400 hover:text-white hover:bg-gray-700 rounded-full h-8 w-8"
+          >
+            ×
+          </Button>
         </DialogTitle>
       </DialogHeader>
       
@@ -347,75 +360,6 @@ export const SettingsPanel = ({ onClose }: SettingsPanelProps) => {
               onCheckedChange={(checked) => handleSettingChange('public_sharing', checked)}
             />
           </div>
-
-          <div className="space-y-2">
-            <Button
-              onClick={handleChangePassword}
-              variant="outline"
-              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-            >
-              <Key className="h-4 w-4 mr-2" />
-              Change Password
-            </Button>
-            
-            <Button
-              onClick={handleSignOutAllDevices}
-              variant="outline"
-              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out All Devices
-            </Button>
-          </div>
-        </div>
-
-        <Separator className="bg-gray-700" />
-
-        {/* Storage Management */}
-        <div className="space-y-4">
-          <h3 className="text-white font-semibold flex items-center space-x-2">
-            <HardDrive className="h-4 w-4" />
-            <span>Storage Management</span>
-          </h3>
-          
-          <div className="space-y-2">
-            <Button
-              onClick={handleClearCache}
-              variant="outline"
-              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-            >
-              Clear Cache
-            </Button>
-            
-            <Button
-              onClick={handleOptimizeStorage}
-              variant="outline"
-              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-            >
-              Optimize Storage
-            </Button>
-            
-            <Button
-              onClick={handleEmptyTrash}
-              variant="outline"
-              className="w-full justify-start border-gray-700 bg-gray-800 text-white hover:bg-gray-700 text-red-400 hover:text-red-300"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Empty Trash
-            </Button>
-          </div>
-        </div>
-
-        <Separator className="bg-gray-700" />
-
-        <div className="text-center">
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            className="w-full border-gray-700 bg-gray-800 text-white hover:bg-gray-700 transition-all duration-200"
-          >
-            Close Settings
-          </Button>
         </div>
       </div>
     </div>

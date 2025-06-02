@@ -73,23 +73,28 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
           const updated = [...prev];
           const fileIndex = updated.findIndex(f => f.file === uploadFile.file);
           if (fileIndex !== -1) {
-            updated[fileIndex].progress += Math.random() * 20;
+            updated[fileIndex].progress += Math.random() * 25 + 10; // Faster progress
             if (updated[fileIndex].progress >= 100) {
               updated[fileIndex].progress = 100;
               updated[fileIndex].status = 'completed';
               clearInterval(interval);
+              
+              // Auto-remove completed files after 3 seconds
+              setTimeout(() => {
+                setUploadingFiles(prev => prev.filter(f => f.file !== uploadFile.file));
+              }, 3000);
             }
           }
           return updated;
         });
-      }, 200);
+      }, 150);
     });
     
     onFileUpload(files);
     
     toast({
-      title: "Files uploaded",
-      description: `${files.length} file(s) uploaded successfully`,
+      title: "Upload Started",
+      description: `Uploading ${files.length} file(s)...`,
     });
   };
 
@@ -143,17 +148,28 @@ export const UploadArea = ({ onFileUpload, isUploading }: UploadAreaProps) => {
                       <span className="text-sm font-medium truncate">
                         {uploadFile.file.name}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeUploadingFile(uploadFile.file)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        {uploadFile.status === 'completed' && (
+                          <span className="text-xs text-green-400 font-medium">
+                            Complete
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeUploadingFile(uploadFile.file)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Progress value={uploadFile.progress} className="flex-1" />
-                      <span className="text-xs text-muted-foreground">
+                      <Progress 
+                        value={uploadFile.progress} 
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-muted-foreground min-w-[3rem]">
                         {Math.round(uploadFile.progress)}%
                       </span>
                     </div>
